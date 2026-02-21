@@ -155,7 +155,6 @@ if ($method === 'POST' && $action === 'cancel') {
     $owner = $dati_pren['ID_Utente'];
     $team_owner = $dati_pren['ID_Team'];
 
-    // Determinazione stato e permessi
     if ($owner == $id_utente_loggato) {
         $nuovo_stato = 'Cancellata';
     } elseif ($ruolo_loggato === 'gestore' || ($ruolo_loggato === 'coordinatore' && $team_owner == $_SESSION['id_team'])) {
@@ -180,7 +179,8 @@ if ($method === 'POST' && $action === 'cancel') {
 // 4. LETTURA PRENOTAZIONI (GET)
 // ==============================================================================
 if ($method === 'GET' && $action === 'list') {
-    $sql = "SELECT p.ID_Prenotazione, p.Data_Prenotazione, p.Stato, p.Contatore_Modifiche, 
+    // Aggiunto p.ID_Asset per permettere la modifica lato Frontend
+    $sql = "SELECT p.ID_Prenotazione, p.Data_Prenotazione, p.Stato, p.Contatore_Modifiche, p.ID_Asset,
                    a.Codice_Univoco, a.Tipologia, a.Descrizione,
                    u.Nome, u.Cognome
             FROM prenotazione p
