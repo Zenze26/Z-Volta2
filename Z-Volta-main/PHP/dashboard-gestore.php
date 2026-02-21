@@ -2,7 +2,7 @@
 session_start();
 // Controllo accesso: deve essere loggato e avere ruolo Gestore
 if (!isset($_SESSION['loggedin']) || $_SESSION['ruolo'] !== 'gestore') {
-    header("Location: index.html");
+    header("Location: ../index.html");
     exit;
 }
 require_once 'config.php';
@@ -29,10 +29,8 @@ require_once 'config.php';
                 <div class="profile-section">
                     <div class="avatar"><i class="fas fa-user-tie"></i></div>
                     <div class="user-info">
-                        <div class="user-name"><?php echo $_SESSION['nome'];
-                                                echo " ";
-                                                echo $_SESSION['cognome']; ?></div>
-                        <div class="user-role"><?php echo $_SESSION['ruolo']; ?></div>
+                        <div class="user-name"><?php echo htmlspecialchars($_SESSION['nome'] . " " . $_SESSION['cognome']); ?></div>
+                        <div class="user-role"><?php echo htmlspecialchars($_SESSION['ruolo']); ?></div>
                     </div>
                 </div>
 
@@ -55,34 +53,20 @@ require_once 'config.php';
         <main class="main-content">
 
             <div id="view-dashboard" class="view-section active">
-                <div id="view-mappa" class="view-section">
-                    <div class="glass-box full-height map-wrapper">
-                        <div class="admin-header">
-                            <div class="section-title"><i class="fas fa-map-marked-alt"></i> Mappa Interattiva Sede</div>
-                            <div class="legend">
-                                <span class="dot free"></span> Disponibile
-                                <span class="dot busy" style="margin-left:10px;"></span> Occupato
-                            </div>
-                        </div>
-                        <div id="map-area" style="position: relative; width: 100%; height: 100%; min-height: 500px; background-color: var(--map-bg); border: 1px solid var(--glass-border); border-radius: 10px; overflow: hidden;">
-                        </div>
-                    </div>
-                </div>
                 <div class="top-row">
-
                     <div class="glass-box column-box">
-                        <div class="section-title">Prenota Risorsa</div>
+                        <div class="section-title">Prenota Risorsa Rapida</div>
                         <div class="assets-grid">
-                            <div class="asset-card" onclick="prenota('A')">
+                            <div class="asset-card" onclick="alert('Funzione rapida in arrivo')">
                                 <i class="fas fa-chair"></i><span>Tipo A<br><small>Scrivania Std</small></span>
                             </div>
-                            <div class="asset-card" onclick="prenota('A2')">
+                            <div class="asset-card" onclick="alert('Funzione rapida in arrivo')">
                                 <i class="fas fa-desktop"></i><span>Tipo A2<br><small>A + Monitor</small></span>
                             </div>
-                            <div class="asset-card" onclick="prenota('B')">
+                            <div class="asset-card" onclick="alert('Funzione rapida in arrivo')">
                                 <i class="fas fa-users"></i><span>Tipo B<br><small>Sala Riunioni</small></span>
                             </div>
-                            <div class="asset-card" onclick="prenota('C')">
+                            <div class="asset-card" onclick="alert('Funzione rapida in arrivo')">
                                 <i class="fas fa-car"></i><span>Tipo C<br><small>Posto Auto</small></span>
                             </div>
                         </div>
@@ -90,40 +74,46 @@ require_once 'config.php';
 
                     <div class="glass-box map-wrapper">
                         <div class="section-title">Stato Ufficio (Live)</div>
-                        <div style="height:100%; display:flex; align-items:center; justify-content:center;">Mappa Live</div>
+                        <div style="height:100%; display:flex; align-items:center; justify-content:center; flex-direction:column; cursor:pointer;" id="mini-map-trigger">
+                            <i class="fas fa-map-marked-alt" style="font-size: 3rem; color: var(--accent); margin-bottom: 10px;"></i>
+                            <span>Clicca per aprire la mappa grande</span>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="glass-box admin-panel">
+            <div id="view-mappa" class="view-section">
+                <div class="glass-box full-height map-wrapper">
                     <div class="admin-header">
-                        <div class="section-title">Gestione Globale Prenotazioni</div>
+                        <div class="section-title"><i class="fas fa-map-marked-alt"></i> Mappa Interattiva Sede</div>
+                        <div class="legend">
+                            <span class="dot free" style="background-color: var(--success); width:10px; height:10px; display:inline-block; border-radius:50%;"></span> Disponibile
+                            <span class="dot busy" style="background-color: var(--danger); width:10px; height:10px; display:inline-block; border-radius:50%; margin-left:10px;"></span> Occupato
+                        </div>
+                    </div>
+                    <div id="map-area" style="position: relative; width: 100%; height: 100%; min-height: 500px; background-color: var(--map-bg); border: 1px solid var(--glass-border); border-radius: 10px; overflow: hidden;">
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-prenotazioni" class="view-section">
+                <div class="glass-box admin-panel full-height">
+                    <div class="admin-header">
+                        <div class="section-title"><i class="fas fa-calendar-check"></i> Gestione Globale Prenotazioni</div>
                     </div>
                     <div class="table-scroll">
                         <table>
                             <thead>
                                 <tr>
                                     <th>Utente</th>
-                                    <th>Ruolo</th>
                                     <th>Risorsa</th>
                                     <th>Data</th>
                                     <th>Stato</th>
-                                    <th>Azioni</th>
+                                    <th class="text-right">Azioni</th>
                                 </tr>
                             </thead>
                             <tbody id="table-prenotazioni-body">
-                                <?php
-                                // $sql = "SELECT ... FROM Prenotazione ...";
-                                // while($row = $result->fetch_assoc()) { ... }
-                                ?>
-                                <tr>
-                                    <td>L. Bianchi</td>
-                                    <td>Dipendente</td>
-                                    <td>Tipo A2</td>
-                                    <td>Oggi</td>
-                                    <td class="status-active">Attiva</td>
-                                    <td class="text-right"><button class="btn-action btn-mod">Mod</button><button class="btn-action btn-rev">Canc</button></td>
-                                </tr>
-                            </tbody>
+                                </tbody>
                         </table>
                     </div>
                 </div>
@@ -150,59 +140,10 @@ require_once 'config.php';
                                     <th class="text-right">Azioni</th>
                                 </tr>
                             </thead>
-                            <tbody id="table-prenotazioni-body">
-                            </tbody>
+                            <tbody id="users-table-body">
+                                </tbody>
                         </table>
                     </div>
-                </div>
-            </div>
-
-            <div id="user-modal" class="modal-overlay">
-                <div class="glass-box modal-content">
-                    <div class="modal-header">
-                        <h3 id="modal-title">Nuovo Utente</h3>
-                        <button class="close-modal" onclick="closeUserModal()">&times;</button>
-                    </div>
-                    <form id="user-form">
-                        <input type="hidden" id="user_id" name="id_utente">
-
-                        <div class="form-group">
-                            <label>Nome</label>
-                            <input type="text" id="nome" name="nome" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Cognome</label>
-                            <input type="text" id="cognome" name="cognome" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Username</label>
-                            <input type="text" id="username" name="username" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Password</label>
-                            <input type="password" id="password" name="password" placeholder="Lascia vuoto per non cambiare">
-                            <small style="color:var(--text-dim); font-size:10px;">(Richiesto solo per nuovi utenti)</small>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Ruolo</label>
-                                <select id="ruolo" name="ruolo">
-                                    <option value="dipendente">Dipendente</option>
-                                    <option value="coordinatore">Coordinatore</option>
-                                    <option value="gestore">Gestore</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>ID Team</label>
-                                <input type="number" id="id_team" name="id_team">
-                            </div>
-                        </div>
-
-                        <div class="modal-footer">
-                            <button type="button" class="btn-action btn-rev" onclick="closeUserModal()">Annulla</button>
-                            <button type="submit" class="btn-action btn-mod">Salva Utente</button>
-                        </div>
-                    </form>
                 </div>
             </div>
 
@@ -271,6 +212,55 @@ require_once 'config.php';
                         </div>
                     <?php endif; ?>
 
+                </div>
+            </div>
+
+            <div id="user-modal" class="modal-overlay">
+                <div class="glass-box modal-content">
+                    <div class="modal-header">
+                        <h3 id="modal-title">Nuovo Utente</h3>
+                        <button class="close-modal" onclick="closeUserModal()">&times;</button>
+                    </div>
+                    <form id="user-form">
+                        <input type="hidden" id="user_id" name="id_utente">
+
+                        <div class="form-group">
+                            <label>Nome</label>
+                            <input type="text" id="nome" name="nome" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Cognome</label>
+                            <input type="text" id="cognome" name="cognome" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Username</label>
+                            <input type="text" id="username" name="username" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input type="password" id="password" name="password" placeholder="Lascia vuoto per non cambiare">
+                            <small style="color:var(--text-dim); font-size:10px;">(Richiesto solo per nuovi utenti)</small>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Ruolo</label>
+                                <select id="ruolo" name="ruolo">
+                                    <option value="dipendente">Dipendente</option>
+                                    <option value="coordinatore">Coordinatore</option>
+                                    <option value="gestore">Gestore</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>ID Team</label>
+                                <input type="number" id="id_team" name="id_team">
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn-action btn-rev" onclick="closeUserModal()">Annulla</button>
+                            <button type="submit" class="btn-action btn-mod">Salva Utente</button>
+                        </div>
+                    </form>
                 </div>
             </div>
 

@@ -26,8 +26,10 @@ if ($method === 'GET') {
     $sql = "SELECT ID_Utente, Username, Nome, Cognome, Ruolo, ID_Team FROM utente ORDER BY Cognome ASC";
     $result = $conn->query($sql);
     $users = [];
-    while ($row = $result->fetch_assoc()) {
-        $users[] = $row;
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $users[] = $row;
+        }
     }
     echo json_encode($users);
     exit;
@@ -35,12 +37,13 @@ if ($method === 'GET') {
 
 // 2. POST: Crea o Modifica utente
 if ($method === 'POST') {
-    $id = isset($_POST['id_utente']) && !empty($_POST['id_utente']) ? $_POST['id_utente'] : null;
-    $nome = $conn->real_escape_string($_POST['nome']);
-    $cognome = $conn->real_escape_string($_POST['cognome']);
-    $username = $conn->real_escape_string($_POST['username']);
-    $ruolo = $conn->real_escape_string($_POST['ruolo']);
-    $team = !empty($_POST['id_team']) ? intval($_POST['id_team']) : 'NULL';
+    $id = !empty($_POST['id_utente']) ? intval($_POST['id_utente']) : null;
+    $nome = trim($_POST['nome']);
+    $cognome = trim($_POST['cognome']);
+    $username = trim($_POST['username']);
+    $ruolo = trim($_POST['ruolo']);
+    // Gestione corretta dell'ID_Team che può essere nullo
+    $team = !empty($_POST['id_team']) ? intval($_POST['id_team']) : null;
     $password = !empty($_POST['password']) ? $_POST['password'] : null;
 
     // Validazione della password se presente
@@ -51,13 +54,14 @@ if ($method === 'POST') {
 
     if ($id) {
         // UPDATE
-        $id = intval($id);
         if ($password) {
-            // Salvataggio in chiaro senza crittografia come da requisiti Z-Volta
-            $sql = "UPDATE utente SET Nome='$nome', Cognome='$cognome', Username='$username', Ruolo='$ruolo', ID_Team=$team, Password='$password' WHERE ID_Utente=$id";
+            // Salvataggio in chiaro senza crittografia come da requisiti attuali Z-Volta
+            $stmt = $conn->prepare("UPDATE utente SET Nome=?, Cognome=?, Username=?, Ruolo=?, ID_Team=?, Password=? WHERE ID_Utente=?");
+            $stmt->bind_param("ssssisi", $nome, $cognome, $username, $ruolo, $team, $password, $id);
         } else {
             // Se la password è vuota, non aggiornarla
-            $sql = "UPDATE utente SET Nome='$nome', Cognome='$cognome', Username='$username', Ruolo='$ruolo', ID_Team=$team WHERE ID_Utente=$id";
+            $stmt = $conn->prepare("UPDATE utente SET Nome=?, Cognome=?, Username=?, Ruolo=?, ID_Team=? WHERE ID_Utente=?");
+            $stmt->bind_param("ssssii", $nome, $cognome, $username, $ruolo, $team, $id);
         }
     } else {
         // INSERT (Nuovo utente)
@@ -65,15 +69,16 @@ if ($method === 'POST') {
             echo json_encode(['success' => false, 'message' => 'Password richiesta per nuovi utenti.']);
             exit;
         }
-        // Salvataggio in chiaro senza crittografia come da requisiti Z-Volta
-        $sql = "INSERT INTO utente (Nome, Cognome, Username, Ruolo, ID_Team, Password) VALUES ('$nome', '$cognome', '$username', '$ruolo', $team, '$password')";
+        $stmt = $conn->prepare("INSERT INTO utente (Nome, Cognome, Username, Ruolo, ID_Team, Password) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("ssssis", $nome, $cognome, $username, $ruolo, $team, $password);
     }
 
-    if ($conn->query($sql)) {
+    if ($stmt->execute()) {
         echo json_encode(['success' => true]);
     } else {
-        echo json_encode(['success' => false, 'message' => $conn->error]);
+        echo json_encode(['success' => false, 'message' => $stmt->error]);
     }
+    $stmt->close();
     exit;
 }
 
@@ -84,20 +89,22 @@ if ($method === 'DELETE') {
         exit;
     }
     
-    // Evita che il gestore cancelli se stesso (corretto user_id in id_utente)
+    // Evita che il gestore cancelli se stesso
     if($input['id'] == $_SESSION['id_utente']) {
         echo json_encode(['success' => false, 'message' => 'Non puoi eliminare il tuo account']);
         exit;
     }
 
     $id = intval($input['id']);
-    $sql = "DELETE FROM utente WHERE ID_Utente = $id";
+    $stmt = $conn->prepare("DELETE FROM utente WHERE ID_Utente = ?");
+    $stmt->bind_param("i", $id);
     
-    if ($conn->query($sql)) {
+    if ($stmt->execute()) {
         echo json_encode(['success' => true]);
     } else {
-        echo json_encode(['success' => false, 'message' => $conn->error]);
+        echo json_encode(['success' => false, 'message' => $stmt->error]);
     }
+    $stmt->close();
     exit;
 }
 ?>
