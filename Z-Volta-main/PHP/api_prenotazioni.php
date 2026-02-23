@@ -18,22 +18,33 @@ $id_utente_loggato = $_SESSION['id_utente'];
 $ruolo_loggato = strtolower($_SESSION['ruolo']);
 
 // ==============================================================================
-// 1. CREAZIONE PRENOTAZIONE (POST)
+// 1. CREAZIONE PRENOTAZIONE (POST) - AGGIORNATA PER RANGE DI DATE (MAX 30 GIORNI)
 // ==============================================================================
 if ($method === 'POST' && $action === 'create') {
     $id_asset = intval($input['id_asset']);
-    $data_prenotazione = $input['data'];
+    $data_inizio_str = $input['data_inizio'];
+    $data_fine_str = isset($input['data_fine']) && !empty($input['data_fine']) ? $input['data_fine'] : $data_inizio_str;
 
-    // 1. Controlla se l'asset è già prenotato da chiunque in quella data
-    $stmt_disp = $conn->prepare("SELECT ID_Prenotazione FROM prenotazione WHERE ID_Asset = ? AND Data_Prenotazione = ? AND Stato = 'Attiva'");
-    $stmt_disp->bind_param("is", $id_asset, $data_prenotazione);
-    $stmt_disp->execute();
-    if ($stmt_disp->get_result()->num_rows > 0) {
-        echo json_encode(['success' => false, 'message' => 'L\'asset selezionato è già occupato in questa data.']);
+    try {
+        $start_date = new DateTime($data_inizio_str);
+        $end_date = new DateTime($data_fine_str);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Formato data non valido.']);
         exit;
     }
 
-    // 2. Recupera la tipologia dell'asset richiesto
+    if ($start_date > $end_date) {
+        echo json_encode(['success' => false, 'message' => 'La Data Fine non può essere precedente alla Data Inizio.']);
+        exit;
+    }
+
+    $diff_days = $start_date->diff($end_date)->days;
+    if ($diff_days > 30) {
+        echo json_encode(['success' => false, 'message' => 'Puoi prenotare per un periodo massimo di 30 giorni.']);
+        exit;
+    }
+
+    // 1. Recupera la tipologia dell'asset richiesto
     $stmt_tipo = $conn->prepare("SELECT Tipologia FROM asset WHERE ID_Asset = ?");
     $stmt_tipo->bind_param("i", $id_asset);
     $stmt_tipo->execute();
@@ -44,55 +55,81 @@ if ($method === 'POST' && $action === 'create') {
     }
     $tipo_asset = $res_tipo->fetch_assoc()['Tipologia'];
 
-    // 3. Controlli specifici per Ruolo sulle prenotazioni nella stessa data
-    if ($ruolo_loggato === 'dipendente') {
-        if ($tipo_asset === 'C') {
-            echo json_encode(['success' => false, 'message' => 'I dipendenti non possono prenotare il Posto Auto.']);
+    // TRANSAZIONE SQL: O salva tutto il periodo, o niente (se c'è un conflitto)
+    $conn->begin_transaction();
+
+    $current_date = clone $start_date;
+    while ($current_date <= $end_date) {
+        $data_prenotazione = $current_date->format('Y-m-d');
+
+        // 2. Controlla se l'asset è già prenotato in questa data specifica
+        $stmt_disp = $conn->prepare("SELECT ID_Prenotazione FROM prenotazione WHERE ID_Asset = ? AND Data_Prenotazione = ? AND Stato = 'Attiva'");
+        $stmt_disp->bind_param("is", $id_asset, $data_prenotazione);
+        $stmt_disp->execute();
+        if ($stmt_disp->get_result()->num_rows > 0) {
+            $conn->rollback();
+            echo json_encode(['success' => false, 'message' => "L'asset risulta già occupato in data " . date('d/m/Y', strtotime($data_prenotazione)) . ". Prenotazione annullata."]);
             exit;
         }
 
-        $stmt_check = $conn->prepare("SELECT COUNT(*) as conteggio FROM prenotazione p JOIN asset a ON p.ID_Asset = a.ID_Asset WHERE p.ID_Utente = ? AND p.Data_Prenotazione = ? AND p.Stato = 'Attiva' AND a.Tipologia IN ('A', 'A2', 'B')");
-        $stmt_check->bind_param("is", $id_utente_loggato, $data_prenotazione);
-        $stmt_check->execute();
-        $conteggio = $stmt_check->get_result()->fetch_assoc()['conteggio'];
+        // 3. Controlli specifici per Ruolo sulle prenotazioni nella stessa data
+        if ($ruolo_loggato === 'dipendente') {
+            if ($tipo_asset === 'C') {
+                $conn->rollback();
+                echo json_encode(['success' => false, 'message' => 'I dipendenti non possono prenotare il Posto Auto.']);
+                exit;
+            }
 
-        if ($conteggio >= 1) {
-            echo json_encode(['success' => false, 'message' => 'Hai già raggiunto il limite di 1 prenotazione (A, A2, B) per questa data.']);
+            $stmt_check = $conn->prepare("SELECT COUNT(*) as conteggio FROM prenotazione p JOIN asset a ON p.ID_Asset = a.ID_Asset WHERE p.ID_Utente = ? AND p.Data_Prenotazione = ? AND p.Stato = 'Attiva' AND a.Tipologia IN ('A', 'A2', 'B')");
+            $stmt_check->bind_param("is", $id_utente_loggato, $data_prenotazione);
+            $stmt_check->execute();
+            $conteggio = $stmt_check->get_result()->fetch_assoc()['conteggio'];
+
+            if ($conteggio >= 1) {
+                $conn->rollback();
+                echo json_encode(['success' => false, 'message' => "Hai già raggiunto il limite di 1 prenotazione per il giorno " . date('d/m/Y', strtotime($data_prenotazione)) . "."]);
+                exit;
+            }
+        } elseif ($ruolo_loggato === 'coordinatore') {
+            $stmt_check = $conn->prepare("SELECT COUNT(*) as conteggio FROM prenotazione WHERE ID_Utente = ? AND Data_Prenotazione = ? AND Stato = 'Attiva'");
+            $stmt_check->bind_param("is", $id_utente_loggato, $data_prenotazione);
+            $stmt_check->execute();
+            $conteggio = $stmt_check->get_result()->fetch_assoc()['conteggio'];
+
+            if ($conteggio >= 3) {
+                $conn->rollback();
+                echo json_encode(['success' => false, 'message' => "Hai già raggiunto il limite massimo di 3 prenotazioni per il giorno " . date('d/m/Y', strtotime($data_prenotazione)) . "."]);
+                exit;
+            }
+        }
+
+        // 4. Inserimento della prenotazione per il giorno corrente
+        $stmt_insert = $conn->prepare("INSERT INTO prenotazione (ID_Utente, ID_Asset, Data_Prenotazione, Stato, Contatore_Modifiche) VALUES (?, ?, ?, 'Attiva', 0)");
+        $stmt_insert->bind_param("iis", $id_utente_loggato, $id_asset, $data_prenotazione);
+
+        if (!$stmt_insert->execute()) {
+            $conn->rollback();
+            echo json_encode(['success' => false, 'message' => 'Errore interno nel salvataggio.']);
             exit;
         }
-    } elseif ($ruolo_loggato === 'coordinatore') {
-        $stmt_check = $conn->prepare("SELECT COUNT(*) as conteggio FROM prenotazione WHERE ID_Utente = ? AND Data_Prenotazione = ? AND Stato = 'Attiva'");
-        $stmt_check->bind_param("is", $id_utente_loggato, $data_prenotazione);
-        $stmt_check->execute();
-        $conteggio = $stmt_check->get_result()->fetch_assoc()['conteggio'];
 
-        if ($conteggio >= 3) {
-            echo json_encode(['success' => false, 'message' => 'Hai già raggiunto il limite massimo di 3 prenotazioni per questa data.']);
-            exit;
-        }
+        $current_date->modify('+1 day');
     }
 
-    // 4. Inserimento della prenotazione
-    $stmt_insert = $conn->prepare("INSERT INTO prenotazione (ID_Utente, ID_Asset, Data_Prenotazione, Stato, Contatore_Modifiche) VALUES (?, ?, ?, 'Attiva', 0)");
-    $stmt_insert->bind_param("iis", $id_utente_loggato, $id_asset, $data_prenotazione);
-
-    if ($stmt_insert->execute()) {
-        echo json_encode(['success' => true, 'message' => 'Prenotazione effettuata con successo!']);
-    } else {
-        echo json_encode(['success' => false, 'message' => 'Errore nel salvataggio.']);
-    }
+    // Se il loop finisce senza errori, confermiamo tutto
+    $conn->commit();
+    echo json_encode(['success' => true, 'message' => 'Prenotazione effettuata con successo!']);
     exit;
 }
 
 // ==============================================================================
-// 2. MODIFICA PRENOTAZIONE (POST)
+// 2. MODIFICA PRENOTAZIONE SINGOLA (POST)
 // ==============================================================================
 if ($method === 'POST' && $action === 'update') {
     $id_prenotazione = intval($input['id_prenotazione']);
     $nuova_data = $input['nuova_data'];
     $nuovo_asset = intval($input['nuovo_asset']); 
 
-    // 1. Controlla che la prenotazione esista e i permessi
     $stmt_get = $conn->prepare("SELECT ID_Utente, Contatore_Modifiche FROM prenotazione WHERE ID_Prenotazione = ? AND Stato = 'Attiva'");
     $stmt_get->bind_param("i", $id_prenotazione);
     $stmt_get->execute();
@@ -114,7 +151,6 @@ if ($method === 'POST' && $action === 'update') {
         exit;
     }
 
-    // 2. Verifica se il nuovo asset è disponibile (escludendo la prenotazione corrente)
     $stmt_disp = $conn->prepare("SELECT ID_Prenotazione FROM prenotazione WHERE ID_Asset = ? AND Data_Prenotazione = ? AND Stato = 'Attiva' AND ID_Prenotazione != ?");
     $stmt_disp->bind_param("isi", $nuovo_asset, $nuova_data, $id_prenotazione);
     $stmt_disp->execute();
@@ -123,12 +159,11 @@ if ($method === 'POST' && $action === 'update') {
         exit;
     }
 
-    // 3. Esegui l'update incrementando il contatore
     $stmt_upd = $conn->prepare("UPDATE prenotazione SET Data_Prenotazione = ?, ID_Asset = ?, Contatore_Modifiche = Contatore_Modifiche + 1 WHERE ID_Prenotazione = ?");
     $stmt_upd->bind_param("sii", $nuova_data, $nuovo_asset, $id_prenotazione);
 
     if ($stmt_upd->execute()) {
-        echo json_encode(['success' => true, 'message' => 'Prenotazione aggiornata con successo!']);
+        echo json_encode(['success' => true, 'message' => 'Data prenotazione aggiornata con successo!']);
     } else {
         echo json_encode(['success' => false, 'message' => 'Errore durante la modifica.']);
     }
@@ -179,7 +214,6 @@ if ($method === 'POST' && $action === 'cancel') {
 // 4. LETTURA PRENOTAZIONI (GET)
 // ==============================================================================
 if ($method === 'GET' && $action === 'list') {
-    // Aggiunto p.ID_Asset per permettere la modifica lato Frontend
     $sql = "SELECT p.ID_Prenotazione, p.Data_Prenotazione, p.Stato, p.Contatore_Modifiche, p.ID_Asset,
                    a.Codice_Univoco, a.Tipologia, a.Descrizione,
                    u.Nome, u.Cognome
