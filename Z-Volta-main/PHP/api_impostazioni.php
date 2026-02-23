@@ -8,6 +8,7 @@ if (!isset($_SESSION['loggedin'])) {
     exit;
 }
 
+// Lettura input JSON per le API che lo usano
 $input = json_decode(file_get_contents('php://input'), true);
 $action = isset($_GET['action']) ? $_GET['action'] : '';
 
@@ -29,14 +30,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $action === 'get_config') {
     exit;
 }
 
-// 2. GET PROFILO UTENTE
+// 2. GET PROFILO UTENTE (Con ricerca Foto Profilo)
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && $action === 'get_profile') {
     $uid = $_SESSION['id_utente'];
     $stmt = $conn->prepare("SELECT Nome, Cognome, Username FROM utente WHERE ID_Utente = ?");
     $stmt->bind_param("i", $uid);
     $stmt->execute();
     $res = $stmt->get_result();
+    
     if ($row = $res->fetch_assoc()) {
+        // Cerca se esiste un avatar associato a questo ID
+        $avatar_url = null;
+        $files = glob("../assets/profiles/avatar_" . $uid . ".*");
+        if ($files && count($files) > 0) {
+            $avatar_url = $files[0] . "?v=" . time(); // Aggiunto time() per forzare il refresh della cache browser
+        }
+        $row['avatar'] = $avatar_url;
+        
         echo json_encode(['success' => true, 'data' => $row]);
     } else {
         echo json_encode(['success' => false, 'message' => 'Utente non trovato']);
@@ -44,16 +54,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $action === 'get_profile') {
     exit;
 }
 
-// 3. AGGIORNA PROFILO E PASSWORD
+// 3. AGGIORNA PROFILO, PASSWORD E FOTO (Usa $_POST e $_FILES per via del form Multipart)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'update_profile') {
     $uid = $_SESSION['id_utente'];
-    $nome = trim($input['nome']);
-    $cognome = trim($input['cognome']);
-    $username = trim($input['username']);
+    $nome = trim($_POST['nome']);
+    $cognome = trim($_POST['cognome']);
+    $username = trim($_POST['username']);
+    $new_pass = isset($_POST['new_password']) ? $_POST['new_password'] : '';
     
-    $new_pass = isset($input['new_password']) ? $input['new_password'] : '';
-    
-    // Aggiorna Dati Base
+    // Aggiorna Dati Base DB
     $stmt = $conn->prepare("UPDATE utente SET Nome = ?, Cognome = ?, Username = ? WHERE ID_Utente = ?");
     $stmt->bind_param("sssi", $nome, $cognome, $username, $uid);
     if (!$stmt->execute()) {
@@ -61,11 +70,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'update_profile') {
         exit;
     }
     
-    // Aggiorna sessione corrente per riflettere le modifiche nell'interfaccia
     $_SESSION['nome'] = $nome;
     $_SESSION['cognome'] = $cognome;
 
-    // Se l'utente ha inserito una nuova password, validala e aggiornala
+    // Gestione Caricamento Foto Profilo
+    if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
+        $dir = "../assets/profiles/";
+        if (!is_dir($dir)) mkdir($dir, 0777, true); // Crea cartella se non esiste
+        
+        // Cancella vecchi avatar di questo utente
+        $old_files = glob($dir . "avatar_" . $uid . ".*");
+        foreach($old_files as $f) unlink($f);
+
+        // Salva nuovo file
+        $ext = strtolower(pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION));
+        $allowed_ext = ['jpg', 'jpeg', 'png', 'gif'];
+        
+        if (in_array($ext, $allowed_ext)) {
+            $filename = "avatar_" . $uid . "." . $ext;
+            move_uploaded_file($_FILES['avatar']['tmp_name'], $dir . $filename);
+        }
+    }
+
+    // Gestione Password
     if (!empty($new_pass)) {
         if (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/', $new_pass)) {
             echo json_encode(['success' => false, 'message' => 'Dati aggiornati, ma la nuova password non rispetta i requisiti (Min 8 car, 1 maiusc, 1 minusc, 1 num, 1 spec).']);
@@ -80,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'update_profile') {
     exit;
 }
 
-// 4. AGGIORNA CONFIGURAZIONE (Solo Gestore)
+// 4. AGGIORNA CONFIGURAZIONE (Solo Gestore - Anticipo Rimosso)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'update_config') {
     if ($_SESSION['ruolo'] !== 'gestore') {
         echo json_encode(['success' => false, 'message' => 'Accesso negato']);
@@ -90,13 +117,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'update_config') {
     $manutenzione = (isset($input['manutenzione_mode']) && $input['manutenzione_mode']) ? '1' : '0';
     $apertura = isset($input['ora_apertura']) ? trim($input['ora_apertura']) : '08:00';
     $chiusura = isset($input['ora_chiusura']) ? trim($input['ora_chiusura']) : '19:00';
-    $anticipo = isset($input['max_giorni_anticipo']) ? strval(intval($input['max_giorni_anticipo'])) : '30';
 
     $configs = [
         'manutenzione_mode' => $manutenzione,
         'ora_apertura' => $apertura,
-        'ora_chiusura' => $chiusura,
-        'max_giorni_anticipo' => $anticipo
+        'ora_chiusura' => $chiusura
     ];
 
     $stmt = $conn->prepare("UPDATE configurazione SET valore = ? WHERE chiave = ?");

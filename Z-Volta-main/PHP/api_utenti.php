@@ -11,13 +11,10 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['ruolo'] !== 'gestore') {
 
 header('Content-Type: application/json');
 
-// Leggi il metodo della richiesta
 $method = $_SERVER['REQUEST_METHOD'];
 $input = json_decode(file_get_contents('php://input'), true);
 
-// Funzione helper per validare la password secondo i requisiti aziendali
 function isPasswordValid($pwd) {
-    // Min 8 char, 1 maiuscola, 1 minuscola, 1 numero, 1 carattere speciale
     return preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/', $pwd);
 }
 
@@ -28,6 +25,14 @@ if ($method === 'GET') {
     $users = [];
     if ($result) {
         while ($row = $result->fetch_assoc()) {
+            $uid = $row['ID_Utente'];
+            $avatar_url = null;
+            // Cerca foto profilo associata
+            $files = glob("../assets/profiles/avatar_" . $uid . ".*");
+            if ($files && count($files) > 0) {
+                $avatar_url = $files[0] . "?v=" . time(); // Previene il caching
+            }
+            $row['avatar'] = $avatar_url;
             $users[] = $row;
         }
     }
@@ -42,29 +47,23 @@ if ($method === 'POST') {
     $cognome = trim($_POST['cognome']);
     $username = trim($_POST['username']);
     $ruolo = trim($_POST['ruolo']);
-    // Gestione corretta dell'ID_Team che può essere nullo
     $team = !empty($_POST['id_team']) ? intval($_POST['id_team']) : null;
     $password = !empty($_POST['password']) ? $_POST['password'] : null;
 
-    // Validazione della password se presente
     if ($password && !isPasswordValid($password)) {
         echo json_encode(['success' => false, 'message' => 'La password deve avere almeno 8 caratteri, una maiuscola, una minuscola, un numero e un carattere speciale.']);
         exit;
     }
 
     if ($id) {
-        // UPDATE
         if ($password) {
-            // Salvataggio in chiaro senza crittografia come da requisiti attuali Z-Volta
             $stmt = $conn->prepare("UPDATE utente SET Nome=?, Cognome=?, Username=?, Ruolo=?, ID_Team=?, Password=? WHERE ID_Utente=?");
             $stmt->bind_param("ssssisi", $nome, $cognome, $username, $ruolo, $team, $password, $id);
         } else {
-            // Se la password è vuota, non aggiornarla
             $stmt = $conn->prepare("UPDATE utente SET Nome=?, Cognome=?, Username=?, Ruolo=?, ID_Team=? WHERE ID_Utente=?");
             $stmt->bind_param("ssssii", $nome, $cognome, $username, $ruolo, $team, $id);
         }
     } else {
-        // INSERT (Nuovo utente)
         if (!$password) {
             echo json_encode(['success' => false, 'message' => 'Password richiesta per nuovi utenti.']);
             exit;
@@ -74,6 +73,26 @@ if ($method === 'POST') {
     }
 
     if ($stmt->execute()) {
+        $target_id = $id ? $id : $stmt->insert_id;
+
+        // Gestione Caricamento Foto Profilo dal Pannello Amministratore
+        if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
+            $dir = "../assets/profiles/";
+            if (!is_dir($dir)) mkdir($dir, 0777, true);
+            
+            // Cancella vecchi file avatar dell'utente
+            $old_files = glob($dir . "avatar_" . $target_id . ".*");
+            foreach($old_files as $f) unlink($f);
+
+            $ext = strtolower(pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION));
+            $allowed_ext = ['jpg', 'jpeg', 'png', 'gif'];
+            
+            if (in_array($ext, $allowed_ext)) {
+                $filename = "avatar_" . $target_id . "." . $ext;
+                move_uploaded_file($_FILES['avatar']['tmp_name'], $dir . $filename);
+            }
+        }
+
         echo json_encode(['success' => true]);
     } else {
         echo json_encode(['success' => false, 'message' => $stmt->error]);
@@ -89,7 +108,6 @@ if ($method === 'DELETE') {
         exit;
     }
     
-    // Evita che il gestore cancelli se stesso
     if($input['id'] == $_SESSION['id_utente']) {
         echo json_encode(['success' => false, 'message' => 'Non puoi eliminare il tuo account']);
         exit;
@@ -100,6 +118,10 @@ if ($method === 'DELETE') {
     $stmt->bind_param("i", $id);
     
     if ($stmt->execute()) {
+        // Pulizia File System: se elimini l'utente, elimini anche la foto!
+        $files = glob("../assets/profiles/avatar_" . $id . ".*");
+        foreach($files as $f) unlink($f);
+
         echo json_encode(['success' => true]);
     } else {
         echo json_encode(['success' => false, 'message' => $stmt->error]);

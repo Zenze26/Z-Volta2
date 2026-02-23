@@ -16,21 +16,20 @@ $input = json_decode(file_get_contents('php://input'), true);
 $id_utente_loggato = $_SESSION['id_utente'];
 $ruolo_loggato = strtolower($_SESSION['ruolo']);
 
-// --- BLOCCO MANUTENZIONE ---
-// Se la manutenzione è attiva, solo il gestore può operare sulle prenotazioni
+// --- BLOCCO MANUTENZIONE TOTALE ---
 $maint_mode = '0';
 $stmt_maint = $conn->query("SELECT valore FROM configurazione WHERE chiave = 'manutenzione_mode'");
 if ($stmt_maint && $row = $stmt_maint->fetch_assoc()) {
     $maint_mode = $row['valore'];
 }
 
-if ($maint_mode === '1' && $ruolo_loggato !== 'gestore' && in_array($action, ['create', 'update'])) {
-    echo json_encode(['success' => false, 'message' => 'SISTEMA IN MANUTENZIONE: Le nuove prenotazioni e modifiche sono momentaneamente bloccate.']);
+// Se la manutenzione è attiva, BLOCCA TUTTI (incluso il gestore) per le creazioni e le modifiche
+if ($maint_mode === '1' && in_array($action, ['create', 'update'])) {
+    echo json_encode(['success' => false, 'message' => 'SISTEMA IN MANUTENZIONE: Il servizio di prenotazione è temporaneamente sospeso per tutti gli utenti.']);
     exit;
 }
-// ---------------------------
+// ----------------------------------
 
-// 1. CREAZIONE PRENOTAZIONE
 if ($method === 'POST' && $action === 'create') {
     $id_asset = intval($input['id_asset']);
     $data_inizio_str = $input['data_inizio'];
@@ -122,7 +121,6 @@ if ($method === 'POST' && $action === 'create') {
     exit;
 }
 
-// 2. MODIFICA PRENOTAZIONE SINGOLA
 if ($method === 'POST' && $action === 'update') {
     $id_prenotazione = intval($input['id_prenotazione']);
     $nuova_data = $input['nuova_data'];
@@ -168,7 +166,6 @@ if ($method === 'POST' && $action === 'update') {
     exit;
 }
 
-// 3. CANCELLAZIONE
 if ($method === 'POST' && $action === 'cancel') {
     $id_prenotazione = intval($input['id_prenotazione']);
 
@@ -206,7 +203,6 @@ if ($method === 'POST' && $action === 'cancel') {
     exit;
 }
 
-// 4. LETTURA PRENOTAZIONI
 if ($method === 'GET' && $action === 'list') {
     $sql = "SELECT p.ID_Prenotazione, p.Data_Prenotazione, p.Stato, p.Contatore_Modifiche, p.ID_Asset,
                    a.Codice_Univoco, a.Tipologia, a.Descrizione,
