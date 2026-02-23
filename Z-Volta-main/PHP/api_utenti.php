@@ -2,7 +2,6 @@
 session_start();
 require_once 'config.php';
 
-// Sicurezza: Solo i gestori possono accedere
 if (!isset($_SESSION['loggedin']) || $_SESSION['ruolo'] !== 'gestore') {
     http_response_code(403);
     echo json_encode(['error' => 'Accesso negato']);
@@ -27,10 +26,9 @@ if ($method === 'GET') {
         while ($row = $result->fetch_assoc()) {
             $uid = $row['ID_Utente'];
             $avatar_url = null;
-            // Cerca foto profilo associata
             $files = glob("../assets/profiles/avatar_" . $uid . ".*");
             if ($files && count($files) > 0) {
-                $avatar_url = $files[0] . "?v=" . time(); // Previene il caching
+                $avatar_url = $files[0] . "?v=" . time(); 
             }
             $row['avatar'] = $avatar_url;
             $users[] = $row;
@@ -75,12 +73,16 @@ if ($method === 'POST') {
     if ($stmt->execute()) {
         $target_id = $id ? $id : $stmt->insert_id;
 
-        // Gestione Caricamento Foto Profilo dal Pannello Amministratore
-        if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
+        // Gestione Rimozione / Caricamento Foto dal Pannello Amministratore
+        $remove_avatar = isset($_POST['remove_avatar']) && $_POST['remove_avatar'] === 'true';
+
+        if ($remove_avatar) {
+            $old_files = glob("../assets/profiles/avatar_" . $target_id . ".*");
+            foreach($old_files as $f) unlink($f);
+        } elseif (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
             $dir = "../assets/profiles/";
             if (!is_dir($dir)) mkdir($dir, 0777, true);
             
-            // Cancella vecchi file avatar dell'utente
             $old_files = glob($dir . "avatar_" . $target_id . ".*");
             foreach($old_files as $f) unlink($f);
 
@@ -101,13 +103,12 @@ if ($method === 'POST') {
     exit;
 }
 
-// 3. DELETE: Elimina utente (riceve JSON)
+// 3. DELETE: Elimina utente
 if ($method === 'DELETE') {
     if(!isset($input['id'])) {
         echo json_encode(['success' => false, 'message' => 'ID mancante']);
         exit;
     }
-    
     if($input['id'] == $_SESSION['id_utente']) {
         echo json_encode(['success' => false, 'message' => 'Non puoi eliminare il tuo account']);
         exit;
@@ -118,10 +119,8 @@ if ($method === 'DELETE') {
     $stmt->bind_param("i", $id);
     
     if ($stmt->execute()) {
-        // Pulizia File System: se elimini l'utente, elimini anche la foto!
         $files = glob("../assets/profiles/avatar_" . $id . ".*");
         foreach($files as $f) unlink($f);
-
         echo json_encode(['success' => true]);
     } else {
         echo json_encode(['success' => false, 'message' => $stmt->error]);

@@ -23,7 +23,6 @@ if ($stmt_maint && $row = $stmt_maint->fetch_assoc()) {
     $maint_mode = $row['valore'];
 }
 
-// Se la manutenzione è attiva, BLOCCA TUTTI (incluso il gestore) per le creazioni e le modifiche
 if ($maint_mode === '1' && in_array($action, ['create', 'update'])) {
     echo json_encode(['success' => false, 'message' => 'SISTEMA IN MANUTENZIONE: Il servizio di prenotazione è temporaneamente sospeso per tutti gli utenti.']);
     exit;
@@ -204,9 +203,10 @@ if ($method === 'POST' && $action === 'cancel') {
 }
 
 if ($method === 'GET' && $action === 'list') {
+    // Aggiunto u.ID_Utente per recuperare l'avatar
     $sql = "SELECT p.ID_Prenotazione, p.Data_Prenotazione, p.Stato, p.Contatore_Modifiche, p.ID_Asset,
                    a.Codice_Univoco, a.Tipologia, a.Descrizione,
-                   u.Nome, u.Cognome
+                   u.ID_Utente, u.Nome, u.Cognome
             FROM prenotazione p
             JOIN asset a ON p.ID_Asset = a.ID_Asset
             JOIN utente u ON p.ID_Utente = u.ID_Utente ";
@@ -230,6 +230,13 @@ if ($method === 'GET' && $action === 'list') {
     
     $prenotazioni = [];
     while ($row = $res->fetch_assoc()) {
+        $uid = $row['ID_Utente'];
+        $avatar_url = null;
+        $files = glob("../assets/profiles/avatar_" . $uid . ".*");
+        if ($files && count($files) > 0) {
+            $avatar_url = $files[0] . "?v=" . time(); 
+        }
+        $row['avatar'] = $avatar_url;
         $prenotazioni[] = $row;
     }
 

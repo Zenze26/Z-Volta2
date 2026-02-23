@@ -8,7 +8,6 @@ if (!isset($_SESSION['loggedin'])) {
     exit;
 }
 
-// Lettura input JSON per le API che lo usano
 $input = json_decode(file_get_contents('php://input'), true);
 $action = isset($_GET['action']) ? $_GET['action'] : '';
 
@@ -30,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $action === 'get_config') {
     exit;
 }
 
-// 2. GET PROFILO UTENTE (Con ricerca Foto Profilo)
+// 2. GET PROFILO UTENTE
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && $action === 'get_profile') {
     $uid = $_SESSION['id_utente'];
     $stmt = $conn->prepare("SELECT Nome, Cognome, Username FROM utente WHERE ID_Utente = ?");
@@ -39,11 +38,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $action === 'get_profile') {
     $res = $stmt->get_result();
     
     if ($row = $res->fetch_assoc()) {
-        // Cerca se esiste un avatar associato a questo ID
         $avatar_url = null;
         $files = glob("../assets/profiles/avatar_" . $uid . ".*");
         if ($files && count($files) > 0) {
-            $avatar_url = $files[0] . "?v=" . time(); // Aggiunto time() per forzare il refresh della cache browser
+            $avatar_url = $files[0] . "?v=" . time(); 
         }
         $row['avatar'] = $avatar_url;
         
@@ -54,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $action === 'get_profile') {
     exit;
 }
 
-// 3. AGGIORNA PROFILO, PASSWORD E FOTO (Usa $_POST e $_FILES per via del form Multipart)
+// 3. AGGIORNA PROFILO, PASSWORD E FOTO
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'update_profile') {
     $uid = $_SESSION['id_utente'];
     $nome = trim($_POST['nome']);
@@ -62,7 +60,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'update_profile') {
     $username = trim($_POST['username']);
     $new_pass = isset($_POST['new_password']) ? $_POST['new_password'] : '';
     
-    // Aggiorna Dati Base DB
     $stmt = $conn->prepare("UPDATE utente SET Nome = ?, Cognome = ?, Username = ? WHERE ID_Utente = ?");
     $stmt->bind_param("sssi", $nome, $cognome, $username, $uid);
     if (!$stmt->execute()) {
@@ -73,16 +70,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'update_profile') {
     $_SESSION['nome'] = $nome;
     $_SESSION['cognome'] = $cognome;
 
-    // Gestione Caricamento Foto Profilo
-    if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
+    // Gestione Rimozione / Caricamento Foto
+    $remove_avatar = isset($_POST['remove_avatar']) && $_POST['remove_avatar'] === 'true';
+
+    if ($remove_avatar) {
+        // Elimina i file se l'utente ha cliccato rimuovi
+        $old_files = glob("../assets/profiles/avatar_" . $uid . ".*");
+        foreach($old_files as $f) unlink($f);
+    } elseif (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
+        // Carica la nuova foto
         $dir = "../assets/profiles/";
-        if (!is_dir($dir)) mkdir($dir, 0777, true); // Crea cartella se non esiste
+        if (!is_dir($dir)) mkdir($dir, 0777, true); 
         
-        // Cancella vecchi avatar di questo utente
         $old_files = glob($dir . "avatar_" . $uid . ".*");
         foreach($old_files as $f) unlink($f);
 
-        // Salva nuovo file
         $ext = strtolower(pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION));
         $allowed_ext = ['jpg', 'jpeg', 'png', 'gif'];
         
@@ -92,7 +94,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'update_profile') {
         }
     }
 
-    // Gestione Password
     if (!empty($new_pass)) {
         if (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/', $new_pass)) {
             echo json_encode(['success' => false, 'message' => 'Dati aggiornati, ma la nuova password non rispetta i requisiti (Min 8 car, 1 maiusc, 1 minusc, 1 num, 1 spec).']);
@@ -107,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'update_profile') {
     exit;
 }
 
-// 4. AGGIORNA CONFIGURAZIONE (Solo Gestore - Anticipo Rimosso)
+// 4. AGGIORNA CONFIGURAZIONE
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'update_config') {
     if ($_SESSION['ruolo'] !== 'gestore') {
         echo json_encode(['success' => false, 'message' => 'Accesso negato']);

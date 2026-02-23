@@ -1,78 +1,38 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- PATCH CSS DINAMICA ---
     const styleFix = document.createElement('style');
     styleFix.innerHTML = `
-        .assets-grid {
-            display: flex !important;
-            flex-wrap: wrap !important;
-            gap: 10px !important;
-            padding: 5px !important;
-            overflow: hidden !important;
-        }
-        .assets-grid .asset-card {
-            flex: 1 1 calc(25% - 15px) !important;
-            min-width: 90px !important;
-            box-sizing: border-box !important;
-        }
-        .map-control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        /* STILE UNIFICATO PULSANTI (Minimal Icon Style) */
-        .btn-action-icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 32px; height: 32px;
-            border-radius: 6px;
-            border: none; cursor: pointer;
-            margin-left: 5px; color: #fff;
-            transition: 0.2s;
-            font-size: 0.9rem;
-        }
-        .btn-mod-icon { background: var(--accent); }
-        .btn-mod-icon:hover { background: #0056b3; transform: scale(1.1); }
-        .btn-rev-icon { background: var(--danger, #dc3545); }
-        .btn-rev-icon:hover { background: #b02a37; transform: scale(1.1); }
+        .assets-grid { display: flex !important; flex-wrap: wrap !important; gap: 10px !important; padding: 5px !important; overflow: hidden !important; }
+        .assets-grid .asset-card { flex: 1 1 calc(25% - 15px) !important; min-width: 90px !important; box-sizing: border-box !important; }
+        .map-control-group { display: flex; flex-direction: column; gap: 5px; align-items: flex-start; }
+        .btn-action-icon { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 6px; border: none; cursor: pointer; margin-left: 5px; color: #fff; transition: 0.2s; font-size: 0.9rem; }
+        .btn-mod-icon { background: var(--accent); } .btn-mod-icon:hover { background: #0056b3; transform: scale(1.1); }
+        .btn-rev-icon { background: var(--danger, #dc3545); } .btn-rev-icon:hover { background: #b02a37; transform: scale(1.1); }
     `;
     document.head.appendChild(styleFix);
 
     let favicon = document.querySelector('link[rel="icon"]') || document.querySelector('link[rel="shortcut icon"]');
-    if (!favicon) {
-        favicon = document.createElement('link'); favicon.rel = 'icon'; document.head.appendChild(favicon);
-    }
+    if (!favicon) { favicon = document.createElement('link'); favicon.rel = 'icon'; document.head.appendChild(favicon); }
     favicon.href = '../assets/favicon.ico';
 
     const appState = {
-        assets: [],
-        prenotazioni: [],
-        currentDate: new Date().toISOString().split('T')[0],
-        currentLayer: 1, 
-        activeFilter: '', 
-        mapInitialized: false
+        assets: [], prenotazioni: [], currentDate: new Date().toISOString().split('T')[0], currentLayer: 1, activeFilter: '', mapInitialized: false
     };
 
     const bgUfficio = `background-color: #1e293b; background-image: linear-gradient(rgba(255,255,255,0.03) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,0.03) 2px, transparent 2px), linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px); background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px; background-position: -2px -2px, -2px -2px, -1px -1px, -1px -1px;`;
     const bgParcheggio = `background-color: #1a1c23; background-image: linear-gradient(90deg, rgba(255,255,255,0.3) 50%, transparent 50%), linear-gradient(0deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.4) 50%, transparent 50%), linear-gradient(0deg, transparent 48%, rgba(255,255,255,0.5) 48%, rgba(255,255,255,0.5) 50%, transparent 50%), repeating-linear-gradient(90deg, transparent 0%, transparent calc(10% - 2px), rgba(255,255,255,0.4) calc(10% - 2px), rgba(255,255,255,0.4) 10%); background-size: 15% 4px, 100% 100%, 100% 100%, 100% 50%; background-position: 0 75%, 0 0, 0 0, 0 0; background-repeat: repeat-x, no-repeat, no-repeat, no-repeat;`;
 
-    // --- CARICAMENTO PROFILO SIDEBAR ---
     function loadSidebarProfile() {
-        fetch('../PHP/api_impostazioni.php?action=get_profile')
-            .then(res => res.json())
-            .then(res => {
-                if (res.success && res.data.avatar) {
-                    const avatarDiv = document.querySelector('.profile-section .avatar');
-                    if (avatarDiv) {
-                        avatarDiv.innerHTML = `<img src="${res.data.avatar}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
-                    }
-                }
-            });
+        fetch('../PHP/api_impostazioni.php?action=get_profile').then(res => res.json()).then(res => {
+            const avatarDiv = document.querySelector('.profile-section .avatar');
+            if (avatarDiv && res.success) {
+                if (res.data.avatar) avatarDiv.innerHTML = `<img src="${res.data.avatar}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+                else avatarDiv.innerHTML = `<i class="fas fa-user"></i>`;
+            }
+        });
     }
     loadSidebarProfile(); 
 
-    // --- NAVIGAZIONE ---
     const viewDashboard = document.getElementById('view-dashboard');
     if (viewDashboard) {
         const vecchiPannelli = viewDashboard.querySelectorAll('.admin-panel:not(#dashboard-res-preview)');
@@ -89,14 +49,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const targetLink = document.querySelector(`.nav-link[data-target="${targetId}"]`);
         if (targetView) targetView.classList.add('active');
         if (targetLink) targetLink.classList.add('active');
-        
         if(targetId === 'view-impostazioni') renderImpostazioniComplete();
     }
 
-    navLinks.forEach(link => {
-        link.addEventListener('click', (e) => { e.preventDefault(); switchView(link.getAttribute('data-target')); });
-    });
-
+    navLinks.forEach(link => { link.addEventListener('click', (e) => { e.preventDefault(); switchView(link.getAttribute('data-target')); }); });
     window.vaiAPrenotazioni = function() { switchView('view-prenotazioni'); };
 
     const toggleBtn = document.getElementById('theme-toggle');
@@ -147,12 +103,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- GESTIONE UTENTI (Gestore) ---
     const btnViewUtenti = document.querySelector('.nav-link[data-target="view-utenti"]');
     if (btnViewUtenti) {
         btnViewUtenti.addEventListener('click', fetchUsers);
-        
-        // Inietta dinamicamente il selettore file avatar nel modale utenti del gestore
         const userFormHtml = document.getElementById('user-form');
         if (userFormHtml && !document.getElementById('modal-avatar-container')) {
             userFormHtml.setAttribute('enctype', 'multipart/form-data');
@@ -160,12 +113,16 @@ document.addEventListener('DOMContentLoaded', () => {
             avatarSection.id = 'modal-avatar-container';
             avatarSection.style.display = 'flex'; avatarSection.style.alignItems = 'center'; avatarSection.style.gap = '15px'; avatarSection.style.marginBottom = '15px';
             avatarSection.innerHTML = `
-                <div id="modal-avatar-preview" style="width:50px; height:50px; border-radius:50%; background:var(--map-bg); overflow:hidden; border:2px solid var(--accent); display:flex; justify-content:center; align-items:center; color:var(--text-main);">
+                <div id="modal-avatar-preview" style="width:50px; height:50px; border-radius:50%; background:var(--map-bg); overflow:hidden; border:2px solid var(--accent); display:flex; justify-content:center; align-items:center; color:var(--text-main); font-size: 1.2rem;">
                     <i class="fas fa-user"></i>
                 </div>
                 <div class="form-group" style="flex:1; margin:0;">
                     <label style="font-size:0.8rem;">Carica/Modifica Foto Profilo</label>
-                    <input type="file" name="avatar" accept="image/png, image/jpeg, image/gif" style="background:none; border:none; padding:0; cursor:pointer;">
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="file" name="avatar" id="modal-avatar-input" accept="image/png, image/jpeg, image/gif" style="background:none; border:none; padding:0; cursor:pointer;" onchange="document.getElementById('remove_user_avatar_flag').value = 'false';">
+                        <button type="button" class="btn-action-icon btn-rev-icon" title="Rimuovi Foto" onclick="document.getElementById('modal-avatar-preview').innerHTML = '<i class=\\'fas fa-user\\'></i>'; document.getElementById('remove_user_avatar_flag').value = 'true'; document.getElementById('modal-avatar-input').value = '';"><i class="fas fa-trash"></i></button>
+                    </div>
+                    <input type="hidden" name="remove_avatar" id="remove_user_avatar_flag" value="false">
                 </div>
             `;
             userFormHtml.insertBefore(avatarSection, userFormHtml.firstChild);
@@ -178,20 +135,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if(!tbody) return; tbody.innerHTML = ''; 
             data.forEach(user => {
                 const tr = document.createElement('tr');
-                
-                // Mostra l'avatar circolare nella tabella
-                const avatarHtml = user.avatar 
-                    ? `<img src="${user.avatar}" style="width:30px; height:30px; border-radius:50%; object-fit:cover; border: 1px solid var(--accent);">` 
-                    : `<div style="width:30px; height:30px; border-radius:50%; background:var(--glass-border); display:flex; align-items:center; justify-content:center; font-size:0.8rem;"><i class="fas fa-user"></i></div>`;
-
+                const avatarHtml = user.avatar ? `<img src="${user.avatar}" style="width:30px; height:30px; border-radius:50%; object-fit:cover; border: 1px solid var(--accent);">` : `<div style="width:30px; height:30px; border-radius:50%; background:var(--glass-border); display:flex; align-items:center; justify-content:center; font-size:0.8rem;"><i class="fas fa-user"></i></div>`;
                 tr.innerHTML = `
                     <td>${user.ID_Utente}</td>
-                    <td>
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            ${avatarHtml}
-                            <div style="font-weight:bold;">${user.Cognome} ${user.Nome}</div>
-                        </div>
-                    </td>
+                    <td><div style="display:flex; align-items:center; gap:10px;">${avatarHtml}<div style="font-weight:bold;">${user.Cognome} ${user.Nome}</div></div></td>
                     <td>${user.Username}</td>
                     <td><span style="font-size:10px; padding:2px 6px; border:1px solid var(--accent); border-radius:4px; text-transform:uppercase;">${user.Ruolo}</span></td>
                     <td>${user.ID_Team || '-'}</td>
@@ -209,43 +156,37 @@ document.addEventListener('DOMContentLoaded', () => {
     if (userForm) {
         userForm.addEventListener('submit', function (e) {
             e.preventDefault();
-            fetch('../PHP/api_utenti.php', { method: 'POST', body: new FormData(this) })
-                .then(res => res.json()).then(data => {
-                    if (data.success) { closeUserModal(); fetchUsers(); } else alert('Errore: ' + data.message);
-                });
+            fetch('../PHP/api_utenti.php', { method: 'POST', body: new FormData(this) }).then(res => res.json()).then(data => {
+                if (data.success) { closeUserModal(); fetchUsers(); } else alert('Errore: ' + data.message);
+            });
         });
     }
 
     window.openUserModal = function () { 
-        document.getElementById('user-form').reset(); document.getElementById('user_id').value = ''; 
-        document.getElementById('modal-title').textContent = 'Nuovo Utente'; 
-        const prev = document.getElementById('modal-avatar-preview');
-        if(prev) prev.innerHTML = '<i class="fas fa-user"></i>';
+        document.getElementById('user-form').reset(); document.getElementById('user_id').value = ''; document.getElementById('modal-title').textContent = 'Nuovo Utente'; 
+        const prev = document.getElementById('modal-avatar-preview'); if(prev) prev.innerHTML = '<i class="fas fa-user"></i>';
+        const flag = document.getElementById('remove_user_avatar_flag'); if(flag) flag.value = 'false';
         document.getElementById('user-modal').classList.add('active'); 
     };
     window.closeUserModal = function () { document.getElementById('user-modal').classList.remove('active'); };
     
-    // Funzione Modifica aggiornata per caricare la foto nella preview
     window.editUser = function (id, n, c, u, r, t, avatar) { 
         document.getElementById('user_id').value = id; document.getElementById('nome').value = n; 
         document.getElementById('cognome').value = c; document.getElementById('username').value = u; 
         document.getElementById('ruolo').value = r; document.getElementById('id_team').value = t; 
         document.getElementById('modal-title').textContent = 'Modifica Utente'; 
-        
+        const flag = document.getElementById('remove_user_avatar_flag'); if(flag) flag.value = 'false';
         const prev = document.getElementById('modal-avatar-preview');
         if(prev) {
-            if(avatar && avatar !== 'undefined' && avatar !== '') {
-                prev.innerHTML = `<img src="${avatar}" style="width:100%; height:100%; object-fit:cover;">`;
-            } else {
-                prev.innerHTML = '<i class="fas fa-user"></i>';
-            }
+            if(avatar && avatar !== 'undefined' && avatar !== '') { prev.innerHTML = `<img src="${avatar}" style="width:100%; height:100%; object-fit:cover;">`; } 
+            else { prev.innerHTML = '<i class="fas fa-user"></i>'; }
         }
         document.getElementById('user-modal').classList.add('active'); 
     };
     
     window.deleteUser = function (id) { if (!confirm('Eliminare utente?')) return; fetch('../PHP/api_utenti.php', { method: 'DELETE', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id}) }).then(res => res.json()).then(data => { if(data.success) fetchUsers(); else alert(data.message); }); };
 
-    // --- IMPOSTAZIONI DINAMICHE (Profilo Utente) ---
+    // --- IMPOSTAZIONI DINAMICHE (Profilo + Sistema con Bottoni Intelligenti) ---
     function renderImpostazioniComplete() {
         const impContainer = document.getElementById('view-impostazioni');
         if (!impContainer) return;
@@ -265,12 +206,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="section-title"><i class="fas fa-id-badge"></i> Gestione Profilo</div>
                     <form id="full-profile-form" enctype="multipart/form-data">
                         <div style="display:flex; align-items:center; gap:15px; margin-bottom:15px;">
-                            <div style="width:60px; height:60px; border-radius:50%; background:var(--map-bg); overflow:hidden; border:2px solid var(--accent); display:flex; justify-content:center; align-items:center;">
+                            <div id="my-avatar-preview" style="width:60px; height:60px; border-radius:50%; background:var(--map-bg); overflow:hidden; border:2px solid var(--accent); display:flex; justify-content:center; align-items:center; font-size: 1.5rem; color: var(--text-main);">
                                 ${p.avatar ? `<img src="${p.avatar}" style="width:100%; height:100%; object-fit:cover;">` : `<i class="fas fa-user"></i>`}
                             </div>
-                            <div class="form-group" style="flex:1;">
-                                <label>Carica/Cambia Foto</label>
-                                <input type="file" name="avatar" accept="image/png, image/jpeg, image/gif" style="background:none; border:none; padding:0; cursor:pointer;">
+                            <div class="form-group" style="flex:1; margin:0;">
+                                <label>Carica/Modifica Foto Profilo</label>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <input type="file" name="avatar" id="my-avatar-input" accept="image/png, image/jpeg, image/gif" style="background:none; border:none; padding:0; cursor:pointer;" onchange="document.getElementById('remove_my_avatar_flag').value = 'false';">
+                                    <button type="button" class="btn-action-icon btn-rev-icon" title="Rimuovi Foto" onclick="document.getElementById('my-avatar-preview').innerHTML = '<i class=\\'fas fa-user\\'></i>'; document.getElementById('remove_my_avatar_flag').value = 'true'; document.getElementById('my-avatar-input').value = '';"><i class="fas fa-trash"></i></button>
+                                </div>
+                                <input type="hidden" name="remove_avatar" id="remove_my_avatar_flag" value="false">
                             </div>
                         </div>
                         <div class="form-row">
@@ -281,7 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <hr style="border-color:var(--glass-border); margin:15px 0;">
                         <div class="section-title" style="font-size:0.9rem;"><i class="fas fa-lock"></i> Modifica Password (Opzionale)</div>
                         <div class="form-group"><label>Nuova Password</label><input type="password" name="new_password" placeholder="Lascia vuoto per non cambiare"></div>
-                        <div class="modal-footer" style="border:none; padding:0; margin-top:15px;"><button type="submit" class="btn-action btn-mod">Salva Profilo</button></div>
+                        <div class="modal-footer" style="border:none; padding:0; margin-top:15px;"><button type="submit" class="btn-action btn-mod">Salva Dati Profilo</button></div>
                     </form>
                 `;
                 wrapper.appendChild(profileBox);
@@ -308,10 +253,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 configBox.innerHTML = `
                     <div class="section-title"><i class="fas fa-sliders-h"></i> Impostazioni Sistema</div>
                     <form id="global-config-form">
-                        <div class="setting-item" style="background: rgba(220,53,69,0.1); padding:10px; border-radius:8px; border:1px solid var(--danger);">
+                        <div class="setting-item" id="maint-box" style="padding:10px; border-radius:8px; border:1px solid var(--glass-border); transition: 0.3s;">
                             <div>
-                                <div class="setting-label" style="color:var(--danger)">Modalità Manutenzione</div>
-                                <div class="setting-desc" style="font-size:0.75rem;">Blocca tutte le prenotazioni del sistema (incluso Gestore).</div>
+                                <div class="setting-label" id="maint-label" style="font-weight:bold;">Modalità Manutenzione</div>
+                                <div class="setting-desc" style="font-size:0.75rem;">Blocca tutte le prenotazioni del sistema.</div>
                             </div>
                             <label class="switch">
                                 <input type="checkbox" id="conf_manutenzione" ${confRes.manutenzione_mode === '1' ? 'checked' : ''}>
@@ -323,10 +268,36 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="form-group"><label>Ora Apertura</label><input type="time" id="conf_apertura" value="${confRes.ora_apertura}"></div>
                             <div class="form-group"><label>Ora Chiusura</label><input type="time" id="conf_chiusura" value="${confRes.ora_chiusura}"></div>
                         </div>
-                        <div class="modal-footer" style="border:none; padding:0; margin-top:15px;"><button type="submit" class="btn-action btn-mod">Salva Sistema</button></div>
+                        <div class="modal-footer" style="border:none; padding:0; margin-top:15px;">
+                            <button type="submit" id="btn-salva-sistema" class="btn-action btn-mod" style="transition:0.3s;">Salva Configurazione</button>
+                        </div>
                     </form>
                 `;
                 wrapper.appendChild(configBox);
+
+                // --- BOTTONE DINAMICO MANUTENZIONE ---
+                const chkMaint = document.getElementById('conf_manutenzione');
+                const btnMaint = document.getElementById('btn-salva-sistema');
+                const boxMaint = document.getElementById('maint-box');
+                const lblMaint = document.getElementById('maint-label');
+
+                const updateBtnColor = () => {
+                    if(chkMaint.checked) {
+                        btnMaint.style.backgroundColor = 'var(--danger)';
+                        btnMaint.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Applica Manutenzione';
+                        boxMaint.style.borderColor = 'var(--danger)';
+                        boxMaint.style.background = 'rgba(220,53,69,0.1)';
+                        lblMaint.style.color = 'var(--danger)';
+                    } else {
+                        btnMaint.style.backgroundColor = 'var(--accent)';
+                        btnMaint.innerHTML = 'Salva Configurazione';
+                        boxMaint.style.borderColor = 'var(--glass-border)';
+                        boxMaint.style.background = 'transparent';
+                        lblMaint.style.color = 'var(--text-main)';
+                    }
+                };
+                chkMaint.addEventListener('change', updateBtnColor);
+                updateBtnColor(); // Esegue al caricamento per settare il colore giusto
 
                 document.getElementById('global-config-form').addEventListener('submit', (e) => {
                     e.preventDefault();
@@ -445,9 +416,10 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `<tr><td colspan="4" style="text-align:center; padding: 20px; color: var(--text-dim);">Nessuna prenotazione attiva. Vai sulla mappa!</td></tr>`;
         } else {
             previewList.forEach(p => {
+                const avatarHtml = p.avatar ? `<img src="${p.avatar}" style="width:24px; height:24px; border-radius:50%; object-fit:cover; margin-right:8px; border:1px solid var(--accent);">` : `<i class="fas fa-user" style="color:var(--accent); margin-right:8px;"></i>`;
                 html += `
                     <tr style="cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'" onclick="vaiAPrenotazioni()">
-                        <td><i class="fas fa-user" style="color:var(--accent); margin-right:8px;"></i>${p.Cognome} ${p.Nome}</td>
+                        <td><div style="display:flex; align-items:center;">${avatarHtml} ${p.Cognome} ${p.Nome}</div></td>
                         <td><strong>${p.Tipologia}</strong> - ${p.Codice_Univoco}</td><td>${p.Data_Prenotazione}</td><td class="status-active">${p.Stato}</td>
                     </tr>`;
             });
@@ -467,6 +439,14 @@ document.addEventListener('DOMContentLoaded', () => {
         container.style.overflow = 'hidden'; container.style.cursor = 'pointer';
         container.style.cssText += layerToShow === 1 ? bgUfficio : bgParcheggio;
 
+        if (layerToShow === 1) {
+            const openSpaceArea = document.createElement('div');
+            openSpaceArea.style.position = 'absolute'; openSpaceArea.style.top = '35%'; openSpaceArea.style.left = '0';
+            openSpaceArea.style.width = '100%'; openSpaceArea.style.height = '40%'; openSpaceArea.style.background = 'rgba(255,255,255,0.02)';
+            openSpaceArea.style.borderTop = '1px dashed rgba(255,255,255,0.1)'; openSpaceArea.style.borderBottom = '1px dashed rgba(255,255,255,0.1)';
+            container.appendChild(openSpaceArea);
+        }
+
         const mapArea = document.createElement('div');
         mapArea.style.position = 'relative'; mapArea.style.width = '100%'; mapArea.style.height = '100%';
 
@@ -477,7 +457,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const isOccupied = appState.prenotazioni.some(p => p.Stato === 'Attiva' && p.Data_Prenotazione === appState.currentDate && Number(p.ID_Asset) === Number(asset.ID_Asset));
 
             const dot = document.createElement('div');
-            dot.style.position = 'absolute'; dot.style.left = asset.Coordinate_X + '%'; dot.style.top = asset.Coordinate_Y + '%';
+            dot.style.position = 'absolute';
+            dot.style.left = asset.Coordinate_X + '%';
+            dot.style.top = asset.Coordinate_Y + '%';
             dot.style.transform = 'translate(-50%, -50%)'; dot.style.display = 'flex'; dot.style.alignItems = 'center'; dot.style.justifyContent = 'center';
             dot.style.color = '#fff'; dot.style.boxShadow = '0 2px 4px rgba(0,0,0,0.5)';
 
@@ -510,28 +492,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const controlliMappa = document.createElement('div');
         controlliMappa.className = 'map-controls-container';
-        controlliMappa.style.display = 'flex'; controlliMappa.style.gap = '20px'; controlliMappa.style.marginTop = '15px'; 
-        controlliMappa.style.alignItems = 'flex-end'; controlliMappa.style.flexWrap = 'wrap'; controlliMappa.style.width = '100%';
+        // FILTRI SPOSTATI A DESTRA
+        controlliMappa.style.display = 'flex'; 
+        controlliMappa.style.gap = '20px'; 
+        controlliMappa.style.marginTop = '15px'; 
+        controlliMappa.style.alignItems = 'flex-end'; 
+        controlliMappa.style.flexWrap = 'wrap'; 
+        controlliMappa.style.width = '100%';
+        controlliMappa.style.justifyContent = 'flex-end';
 
         const oggi = new Date().toISOString().split('T')[0];
 
+        // ALLINEAMENTO PERFETTO: Label dritta sopra, input senza onkeydown
         controlliMappa.innerHTML = `
             <div class="map-control-group">
-                <label style="font-weight:bold; font-size:0.8rem; color:var(--text-dim);">Data:</label>
-                <input type="date" id="map-date-filter" value="${appState.currentDate}" min="${oggi}" onkeydown="return false" 
+                <label style="font-weight:bold; font-size:0.8rem; color:var(--text-dim);">Data Selezione</label>
+                <input type="date" id="map-date-filter" value="${appState.currentDate}" min="${oggi}" 
                        style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--glass-border); background-color: var(--bg-main); color: var(--text-main); cursor: pointer; outline: none;">
             </div>
             <div class="map-control-group">
-                <label style="font-weight:bold; font-size:0.8rem; color:var(--text-dim);">Zona:</label>
+                <label style="font-weight:bold; font-size:0.8rem; color:var(--text-dim);">Piano Sede</label>
                 <select id="map-layer-filter" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--glass-border); background-color: var(--bg-main); color: var(--text-main); cursor: pointer; outline: none;">
-                    <option value="1">Sede Principale (Uffici)</option>
-                    <option value="2">Garage Sotterraneo</option>
+                    <option value="1">Uffici (Piano Terra)</option>
+                    <option value="2">Garage (Sotterraneo)</option>
                 </select>
             </div>
             <div class="map-control-group">
-                <label style="font-weight:bold; font-size:0.8rem; color:var(--text-dim);">Filtro Risorse:</label>
+                <label style="font-weight:bold; font-size:0.8rem; color:var(--text-dim);">Filtra per Tipo</label>
                 <select id="map-type-filter" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--glass-border); background-color: var(--bg-main); color: var(--text-main); cursor: pointer; outline: none;">
-                    <option value="">Tutte le risorse</option>
+                    <option value="">Mostra tutte le risorse</option>
                     <option value="A">Scrivania Std (Tipo A)</option>
                     <option value="A2">Scrivania + Monitor (Tipo A2)</option>
                     <option value="B">Sala Riunioni (Tipo B)</option>
@@ -542,12 +531,14 @@ document.addEventListener('DOMContentLoaded', () => {
         headerMappa.appendChild(controlliMappa);
 
         document.getElementById('map-date-filter').addEventListener('change', (e) => { appState.currentDate = e.target.value; updateMapState(); });
+        
         document.getElementById('map-layer-filter').addEventListener('change', (e) => { 
             appState.currentLayer = parseInt(e.target.value); 
             if (appState.currentLayer === 2) { appState.activeFilter = 'C'; } 
             else if (appState.currentLayer === 1 && appState.activeFilter === 'C') { appState.activeFilter = ''; }
             syncGlobalFiltersUI(); updateMapState(); 
         });
+
         document.getElementById('map-type-filter').addEventListener('change', (e) => { 
             appState.activeFilter = e.target.value; 
             if (appState.activeFilter === 'C') appState.currentLayer = 2;
@@ -558,14 +549,18 @@ document.addEventListener('DOMContentLoaded', () => {
         let mapArea = document.getElementById('map-area');
         if(!mapArea) {
             mapArea = document.createElement('div');
-            mapArea.id = 'map-area'; mapArea.style.position = 'relative'; mapArea.style.width = '100%'; mapArea.style.height = '600px'; 
+            mapArea.id = 'map-area';
+            mapArea.style.position = 'relative'; mapArea.style.width = '100%'; mapArea.style.height = '600px'; 
             mapArea.style.border = '2px solid var(--glass-border)'; mapArea.style.borderRadius = '10px'; mapArea.style.overflow = 'hidden';
             mapContainer.appendChild(mapArea);
         }
 
         const layerUfficio = document.createElement('div'); layerUfficio.id = 'layer-1'; layerUfficio.style.width = '100%'; layerUfficio.style.height = '100%'; layerUfficio.style.position = 'absolute';
         layerUfficio.style.cssText += bgUfficio;
-        const ingressoUfficio = document.createElement('div'); ingressoUfficio.style.position = 'absolute'; ingressoUfficio.style.bottom = '0'; ingressoUfficio.style.left = '50%'; ingressoUfficio.style.transform = 'translateX(-50%)'; ingressoUfficio.style.width = '120px'; ingressoUfficio.style.height = '20px'; ingressoUfficio.style.background = 'rgba(255,255,255,0.1)'; ingressoUfficio.style.borderTop = '2px solid rgba(255,255,255,0.3)'; ingressoUfficio.style.textAlign = 'center'; ingressoUfficio.style.fontSize = '12px'; ingressoUfficio.style.color = '#aaa'; ingressoUfficio.innerHTML = 'ENTRATA PRINCIPALE'; layerUfficio.appendChild(ingressoUfficio);
+        const meetingArea = document.createElement('div'); meetingArea.style.position = 'absolute'; meetingArea.style.top = '0'; meetingArea.style.left = '0'; meetingArea.style.width = '100%'; meetingArea.style.height = '30%'; meetingArea.style.background = 'rgba(255, 255, 255, 0.03)'; meetingArea.style.borderBottom = '2px dashed rgba(255,255,255,0.1)'; meetingArea.innerHTML = '<div style="position:absolute; top:10px; left:10px; color:rgba(255,255,255,0.3); font-size:12px; font-weight:bold; letter-spacing:1px;">AREA MEETING</div>'; layerUfficio.appendChild(meetingArea);
+        const openSpaceArea = document.createElement('div'); openSpaceArea.style.position = 'absolute'; openSpaceArea.style.top = '30%'; openSpaceArea.style.left = '0'; openSpaceArea.style.width = '100%'; openSpaceArea.style.height = '45%'; openSpaceArea.innerHTML = '<div style="position:absolute; top:10px; left:10px; color:rgba(255,255,255,0.3); font-size:12px; font-weight:bold; letter-spacing:1px;">OPEN SPACE (TIPO A)</div>'; layerUfficio.appendChild(openSpaceArea);
+        const execArea = document.createElement('div'); execArea.style.position = 'absolute'; execArea.style.bottom = '0'; execArea.style.left = '0'; execArea.style.width = '100%'; execArea.style.height = '25%'; execArea.style.background = 'rgba(255, 255, 255, 0.02)'; execArea.style.borderTop = '2px dashed rgba(255,255,255,0.1)'; execArea.innerHTML = '<div style="position:absolute; top:10px; left:10px; color:rgba(255,255,255,0.3); font-size:12px; font-weight:bold; letter-spacing:1px;">AREA EXECUTIVE (TIPO A2)</div>'; layerUfficio.appendChild(execArea);
+
         const layerParcheggio = document.createElement('div'); layerParcheggio.id = 'layer-2'; layerParcheggio.style.width = '100%'; layerParcheggio.style.height = '100%'; layerParcheggio.style.position = 'absolute'; layerParcheggio.style.display = 'none';
         layerParcheggio.style.cssText += bgParcheggio;
 
@@ -644,8 +639,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             actionButtons += `<button class="btn-action-icon btn-rev-icon" title="Annulla Prenotazione" onclick="annullaPrenotazione(${p.ID_Prenotazione})"><i class="fas fa-times"></i></button>`;
             
+            const avatarHtml = p.avatar ? `<img src="${p.avatar}" style="width:30px; height:30px; border-radius:50%; object-fit:cover; border: 1px solid var(--accent);">` : `<div style="width:30px; height:30px; border-radius:50%; background:var(--glass-border); display:flex; align-items:center; justify-content:center; font-size:0.8rem;"><i class="fas fa-user"></i></div>`;
+
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${p.Cognome} ${p.Nome}</td><td><strong style="color:var(--accent);">${p.Tipologia}</strong> - ${p.Codice_Univoco}</td><td>${p.Data_Prenotazione}</td><td class="status-active">${p.Stato}</td><td class="text-right">${actionButtons}</td>`;
+            tr.innerHTML = `
+                <td><div style="display:flex; align-items:center; gap:10px;">${avatarHtml} <span>${p.Cognome} ${p.Nome}</span></div></td>
+                <td><strong style="color:var(--accent);">${p.Tipologia}</strong> - ${p.Codice_Univoco}</td>
+                <td>${p.Data_Prenotazione}</td>
+                <td class="status-active">${p.Stato}</td>
+                <td class="text-right">${actionButtons}</td>
+            `;
             tbody.appendChild(tr);
         });
     }
@@ -662,8 +665,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <input type="hidden" id="res_id_asset" name="id_asset"><input type="hidden" id="res_id_prenotazione" name="id_prenotazione">
                         <div class="form-group"><label>Risorsa</label><input type="text" id="res_asset_name" readonly style="background-color: var(--bg-main); cursor: not-allowed; border: 1px solid var(--glass-border); padding: 10px; border-radius: 5px; width: 100%; color: var(--text-main); font-weight:bold;"></div>
                         <div class="form-row" style="display:flex; gap:10px; margin-top:15px;">
-                            <div style="flex:1;"><label id="label_data_inizio">Data Inizio</label><input type="date" id="res_data_inizio" required min="${oggi}" onkeydown="return false" style="padding: 10px; border-radius: 5px; border: 1px solid var(--glass-border); background-color: var(--bg-main); color: var(--text-main); width: 100%; cursor:pointer;"></div>
-                            <div style="flex:1;" id="box_data_fine"><label>Data Fine (Max 30 gg)</label><input type="date" id="res_data_fine" min="${oggi}" onkeydown="return false" style="padding: 10px; border-radius: 5px; border: 1px solid var(--glass-border); background-color: var(--bg-main); color: var(--text-main); width: 100%; cursor:pointer;"></div>
+                            <div style="flex:1;"><label id="label_data_inizio">Data Inizio</label><input type="date" id="res_data_inizio" required min="${oggi}" style="padding: 10px; border-radius: 5px; border: 1px solid var(--glass-border); background-color: var(--bg-main); color: var(--text-main); width: 100%; cursor:pointer;"></div>
+                            <div style="flex:1;" id="box_data_fine"><label>Data Fine (Max 30 gg)</label><input type="date" id="res_data_fine" min="${oggi}" style="padding: 10px; border-radius: 5px; border: 1px solid var(--glass-border); background-color: var(--bg-main); color: var(--text-main); width: 100%; cursor:pointer;"></div>
                         </div>
                         <div class="modal-footer" style="margin-top: 20px;"><button type="button" class="btn-action btn-rev" style="background:var(--danger);" onclick="closeReservationModal()">Annulla</button><button type="submit" class="btn-action btn-mod">Conferma Salva</button></div>
                     </form>
