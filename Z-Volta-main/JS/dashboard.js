@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
         .btn-action-icon { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 6px; border: none; cursor: pointer; margin-left: 5px; color: #fff; transition: 0.2s; font-size: 0.9rem; }
         .btn-mod-icon { background: var(--accent); } .btn-mod-icon:hover { background: #0056b3; transform: scale(1.1); }
         .btn-rev-icon { background: var(--danger, #dc3545); } .btn-rev-icon:hover { background: #b02a37; transform: scale(1.1); }
+        td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+        td:last-child { overflow: visible; }
     `;
     document.head.appendChild(styleFix);
 
@@ -20,7 +22,28 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const bgUfficio = `background-color: #1e293b; background-image: linear-gradient(rgba(255,255,255,0.03) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,0.03) 2px, transparent 2px), linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px); background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px; background-position: -2px -2px, -2px -2px, -1px -1px, -1px -1px;`;
-    const bgParcheggio = `background-color: #1a1c23; background-image: linear-gradient(90deg, rgba(255,255,255,0.3) 50%, transparent 50%), linear-gradient(0deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.4) 50%, transparent 50%), linear-gradient(0deg, transparent 48%, rgba(255,255,255,0.5) 48%, rgba(255,255,255,0.5) 50%, transparent 50%), repeating-linear-gradient(90deg, transparent 0%, transparent calc(10% - 2px), rgba(255,255,255,0.4) calc(10% - 2px), rgba(255,255,255,0.4) 10%); background-size: 15% 4px, 100% 100%, 100% 100%, 100% 50%; background-position: 0 75%, 0 0, 0 0, 0 0; background-repeat: repeat-x, no-repeat, no-repeat, no-repeat;`;
+    
+    // NUOVO GARAGE: Posti proporzionati in alto (fino al 45%), Strada spaziosa sotto.
+    const bgParcheggio = `
+        background-color: #1a1c23; 
+        background-image: 
+            linear-gradient(90deg, rgba(255,255,255,0.3) 50%, transparent 50%), 
+            linear-gradient(0deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.4) 55%, transparent 55%), 
+            linear-gradient(0deg, transparent 43%, rgba(255,255,255,0.5) 43%, rgba(255,255,255,0.5) 45%, transparent 45%), 
+            repeating-linear-gradient(90deg, transparent 0%, transparent calc(10% - 2px), rgba(255,255,255,0.4) calc(10% - 2px), rgba(255,255,255,0.4) 10%); 
+        background-size: 15% 4px, 100% 100%, 100% 100%, 100% 45%; 
+        background-position: 0 75%, 0 0, 0 0, 0 0; 
+        background-repeat: repeat-x, no-repeat, no-repeat, no-repeat;
+    `;
+
+    function applyTheme(isLight) {
+        if(isLight) document.body.setAttribute('data-theme', 'light');
+        else document.body.removeAttribute('data-theme');
+    }
+    const savedTheme = localStorage.getItem('dashboard-theme');
+    applyTheme(savedTheme === 'light');
+    const oldThemeBtn = document.getElementById('theme-toggle');
+    if(oldThemeBtn) oldThemeBtn.style.display = 'none';
 
     function loadSidebarProfile() {
         fetch('../PHP/api_impostazioni.php?action=get_profile').then(res => res.json()).then(res => {
@@ -54,23 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     navLinks.forEach(link => { link.addEventListener('click', (e) => { e.preventDefault(); switchView(link.getAttribute('data-target')); }); });
     window.vaiAPrenotazioni = function() { switchView('view-prenotazioni'); };
-
-    const toggleBtn = document.getElementById('theme-toggle');
-    const body = document.body;
-    if (toggleBtn) {
-        const icon = toggleBtn.querySelector('i'); const textSpan = toggleBtn.querySelector('span');
-        function updateThemeUI(isLight) {
-            if (isLight) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); textSpan.textContent = 'Dark Mode'; } 
-            else { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); textSpan.textContent = 'Light Mode'; }
-        }
-        const savedTheme = localStorage.getItem('dashboard-theme');
-        if (savedTheme) { body.setAttribute('data-theme', savedTheme); updateThemeUI(savedTheme === 'light'); }
-        toggleBtn.addEventListener('click', (e) => {
-            e.preventDefault(); const isCurrentlyLight = body.getAttribute('data-theme') === 'light';
-            const newTheme = isCurrentlyLight ? 'dark' : 'light';
-            body.setAttribute('data-theme', newTheme); localStorage.setItem('dashboard-theme', newTheme); updateThemeUI(!isCurrentlyLight);
-        });
-    }
 
     function syncGlobalFiltersUI() {
         const mapTypeSelect = document.getElementById('map-type-filter'); if (mapTypeSelect) mapTypeSelect.value = appState.activeFilter;
@@ -113,13 +119,13 @@ document.addEventListener('DOMContentLoaded', () => {
             avatarSection.id = 'modal-avatar-container';
             avatarSection.style.display = 'flex'; avatarSection.style.alignItems = 'center'; avatarSection.style.gap = '15px'; avatarSection.style.marginBottom = '15px';
             avatarSection.innerHTML = `
-                <div id="modal-avatar-preview" style="width:50px; height:50px; border-radius:50%; background:var(--map-bg); overflow:hidden; border:2px solid var(--accent); display:flex; justify-content:center; align-items:center; color:var(--text-main); font-size: 1.2rem;">
+                <div id="modal-avatar-preview" style="width:50px; height:50px; border-radius:50%; background:var(--map-bg); overflow:hidden; border:2px solid var(--accent); display:flex; justify-content:center; align-items:center; color:var(--text-main); font-size: 1.2rem; flex-shrink: 0;">
                     <i class="fas fa-user"></i>
                 </div>
                 <div class="form-group" style="flex:1; margin:0;">
                     <label style="font-size:0.8rem;">Carica/Modifica Foto Profilo</label>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="file" name="avatar" id="modal-avatar-input" accept="image/png, image/jpeg, image/gif" style="background:none; border:none; padding:0; cursor:pointer;" onchange="document.getElementById('remove_user_avatar_flag').value = 'false';">
+                        <input type="file" name="avatar" id="modal-avatar-input" accept="image/png, image/jpeg, image/gif" style="background:none; border:none; padding:0; cursor:pointer; width:100%;" onchange="document.getElementById('remove_user_avatar_flag').value = 'false';">
                         <button type="button" class="btn-action-icon btn-rev-icon" title="Rimuovi Foto" onclick="document.getElementById('modal-avatar-preview').innerHTML = '<i class=\\'fas fa-user\\'></i>'; document.getElementById('remove_user_avatar_flag').value = 'true'; document.getElementById('modal-avatar-input').value = '';"><i class="fas fa-trash"></i></button>
                     </div>
                     <input type="hidden" name="remove_avatar" id="remove_user_avatar_flag" value="false">
@@ -135,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if(!tbody) return; tbody.innerHTML = ''; 
             data.forEach(user => {
                 const tr = document.createElement('tr');
-                const avatarHtml = user.avatar ? `<img src="${user.avatar}" style="width:30px; height:30px; border-radius:50%; object-fit:cover; border: 1px solid var(--accent);">` : `<div style="width:30px; height:30px; border-radius:50%; background:var(--glass-border); display:flex; align-items:center; justify-content:center; font-size:0.8rem;"><i class="fas fa-user"></i></div>`;
+                const avatarHtml = user.avatar ? `<img src="${user.avatar}" style="width:30px; height:30px; border-radius:50%; object-fit:cover; border: 1px solid var(--accent); flex-shrink: 0;">` : `<div style="width:30px; height:30px; border-radius:50%; background:var(--glass-border); display:flex; align-items:center; justify-content:center; font-size:0.8rem; flex-shrink: 0;"><i class="fas fa-user"></i></div>`;
                 tr.innerHTML = `
                     <td>${user.ID_Utente}</td>
                     <td><div style="display:flex; align-items:center; gap:10px;">${avatarHtml}<div style="font-weight:bold;">${user.Cognome} ${user.Nome}</div></div></td>
@@ -178,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const flag = document.getElementById('remove_user_avatar_flag'); if(flag) flag.value = 'false';
         const prev = document.getElementById('modal-avatar-preview');
         if(prev) {
-            if(avatar && avatar !== 'undefined' && avatar !== '') { prev.innerHTML = `<img src="${avatar}" style="width:100%; height:100%; object-fit:cover;">`; } 
+            if(avatar && avatar !== 'undefined' && avatar !== '') { prev.innerHTML = `<img src="${avatar}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`; } 
             else { prev.innerHTML = '<i class="fas fa-user"></i>'; }
         }
         document.getElementById('user-modal').classList.add('active'); 
@@ -186,7 +192,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     window.deleteUser = function (id) { if (!confirm('Eliminare utente?')) return; fetch('../PHP/api_utenti.php', { method: 'DELETE', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id}) }).then(res => res.json()).then(data => { if(data.success) fetchUsers(); else alert(data.message); }); };
 
-    // --- IMPOSTAZIONI DINAMICHE (Profilo + Sistema con Bottoni Intelligenti) ---
     function renderImpostazioniComplete() {
         const impContainer = document.getElementById('view-impostazioni');
         if (!impContainer) return;
@@ -206,13 +211,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="section-title"><i class="fas fa-id-badge"></i> Gestione Profilo</div>
                     <form id="full-profile-form" enctype="multipart/form-data">
                         <div style="display:flex; align-items:center; gap:15px; margin-bottom:15px;">
-                            <div id="my-avatar-preview" style="width:60px; height:60px; border-radius:50%; background:var(--map-bg); overflow:hidden; border:2px solid var(--accent); display:flex; justify-content:center; align-items:center; font-size: 1.5rem; color: var(--text-main);">
+                            <div id="my-avatar-preview" style="width:60px; height:60px; border-radius:50%; background:var(--map-bg); overflow:hidden; border:2px solid var(--accent); display:flex; justify-content:center; align-items:center; font-size: 1.5rem; color: var(--text-main); flex-shrink: 0;">
                                 ${p.avatar ? `<img src="${p.avatar}" style="width:100%; height:100%; object-fit:cover;">` : `<i class="fas fa-user"></i>`}
                             </div>
                             <div class="form-group" style="flex:1; margin:0;">
                                 <label>Carica/Modifica Foto Profilo</label>
                                 <div style="display: flex; gap: 10px; align-items: center;">
-                                    <input type="file" name="avatar" id="my-avatar-input" accept="image/png, image/jpeg, image/gif" style="background:none; border:none; padding:0; cursor:pointer;" onchange="document.getElementById('remove_my_avatar_flag').value = 'false';">
+                                    <input type="file" name="avatar" id="my-avatar-input" accept="image/png, image/jpeg, image/gif" style="background:none; border:none; padding:0; cursor:pointer; width:100%;" onchange="document.getElementById('remove_my_avatar_flag').value = 'false';">
                                     <button type="button" class="btn-action-icon btn-rev-icon" title="Rimuovi Foto" onclick="document.getElementById('my-avatar-preview').innerHTML = '<i class=\\'fas fa-user\\'></i>'; document.getElementById('remove_my_avatar_flag').value = 'true'; document.getElementById('my-avatar-input').value = '';"><i class="fas fa-trash"></i></button>
                                 </div>
                                 <input type="hidden" name="remove_avatar" id="remove_my_avatar_flag" value="false">
@@ -233,9 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 document.getElementById('full-profile-form').addEventListener('submit', (e) => {
                     e.preventDefault();
-                    fetch('../PHP/api_impostazioni.php?action=update_profile', {
-                        method: 'POST', body: new FormData(e.target)
-                    }).then(res => res.json()).then(resp => {
+                    fetch('../PHP/api_impostazioni.php?action=update_profile', { method: 'POST', body: new FormData(e.target) }).then(res => res.json()).then(resp => {
                         alert(resp.message);
                         if(resp.success) {
                             const data = Object.fromEntries(new FormData(e.target).entries());
@@ -247,35 +250,57 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            if (confRes && !confRes.error && confRes.manutenzione_mode !== undefined) {
-                const configBox = document.createElement('div');
-                configBox.className = 'glass-box';
-                configBox.innerHTML = `
-                    <div class="section-title"><i class="fas fa-sliders-h"></i> Impostazioni Sistema</div>
-                    <form id="global-config-form">
-                        <div class="setting-item" id="maint-box" style="padding:10px; border-radius:8px; border:1px solid var(--glass-border); transition: 0.3s;">
-                            <div>
-                                <div class="setting-label" id="maint-label" style="font-weight:bold;">Modalità Manutenzione</div>
-                                <div class="setting-desc" style="font-size:0.75rem;">Blocca tutte le prenotazioni del sistema.</div>
-                            </div>
-                            <label class="switch">
-                                <input type="checkbox" id="conf_manutenzione" ${confRes.manutenzione_mode === '1' ? 'checked' : ''}>
-                                <span class="slider round"></span>
-                            </label>
-                        </div>
-                        <hr style="border-color:var(--glass-border); margin:15px 0;">
-                        <div class="form-row">
-                            <div class="form-group"><label>Ora Apertura</label><input type="time" id="conf_apertura" value="${confRes.ora_apertura}"></div>
-                            <div class="form-group"><label>Ora Chiusura</label><input type="time" id="conf_chiusura" value="${confRes.ora_chiusura}"></div>
-                        </div>
-                        <div class="modal-footer" style="border:none; padding:0; margin-top:15px;">
-                            <button type="submit" id="btn-salva-sistema" class="btn-action btn-mod" style="transition:0.3s;">Salva Configurazione</button>
-                        </div>
-                    </form>
-                `;
-                wrapper.appendChild(configBox);
+            const isGestore = confRes && !confRes.error && confRes.manutenzione_mode !== undefined;
+            const configBox = document.createElement('div');
+            configBox.className = 'glass-box';
+            
+            let configHtml = `
+                <div class="section-title"><i class="fas fa-cogs"></i> Impostazioni Applicazione</div>
+                <div class="setting-item" style="padding:10px; border-radius:8px; border:1px solid var(--glass-border); margin-bottom:15px;">
+                    <div>
+                        <div class="setting-label">Tema Interfaccia</div>
+                        <div class="setting-desc">Passa alla modalità chiara o scura.</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="settings-theme-toggle" ${document.body.getAttribute('data-theme') === 'light' ? 'checked' : ''}>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            `;
 
-                // --- BOTTONE DINAMICO MANUTENZIONE ---
+            if(isGestore) {
+                configHtml += `
+                <form id="global-config-form">
+                    <div class="setting-item" id="maint-box" style="padding:10px; border-radius:8px; border:1px solid var(--glass-border); transition: 0.3s;">
+                        <div>
+                            <div class="setting-label" id="maint-label" style="font-weight:bold;">Modalità Manutenzione</div>
+                            <div class="setting-desc" style="font-size:0.75rem;">Blocca tutte le prenotazioni del sistema.</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="conf_manutenzione" ${confRes.manutenzione_mode === '1' ? 'checked' : ''}>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <hr style="border-color:var(--glass-border); margin:15px 0;">
+                    <div class="form-row">
+                        <div class="form-group"><label>Ora Apertura</label><input type="time" id="conf_apertura" value="${confRes.ora_apertura}"></div>
+                        <div class="form-group"><label>Ora Chiusura</label><input type="time" id="conf_chiusura" value="${confRes.ora_chiusura}"></div>
+                    </div>
+                    <div class="modal-footer" style="border:none; padding:0; margin-top:15px;">
+                        <button type="submit" id="btn-salva-sistema" class="btn-action btn-mod" style="transition:0.3s; padding: 8px 15px;">Salva Sistema</button>
+                    </div>
+                </form>
+                `;
+            }
+            
+            configBox.innerHTML = configHtml;
+            wrapper.appendChild(configBox);
+
+            document.getElementById('settings-theme-toggle').addEventListener('change', (e) => {
+                const isLight = e.target.checked; applyTheme(isLight); localStorage.setItem('dashboard-theme', isLight ? 'light' : 'dark');
+            });
+
+            if(isGestore) {
                 const chkMaint = document.getElementById('conf_manutenzione');
                 const btnMaint = document.getElementById('btn-salva-sistema');
                 const boxMaint = document.getElementById('maint-box');
@@ -283,34 +308,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const updateBtnColor = () => {
                     if(chkMaint.checked) {
-                        btnMaint.style.backgroundColor = 'var(--danger)';
+                        btnMaint.style.backgroundColor = 'var(--danger)'; btnMaint.style.borderColor = 'var(--danger)';
                         btnMaint.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Applica Manutenzione';
-                        boxMaint.style.borderColor = 'var(--danger)';
-                        boxMaint.style.background = 'rgba(220,53,69,0.1)';
-                        lblMaint.style.color = 'var(--danger)';
+                        boxMaint.style.borderColor = 'var(--danger)'; boxMaint.style.background = 'rgba(220,53,69,0.1)'; lblMaint.style.color = 'var(--danger)';
                     } else {
-                        btnMaint.style.backgroundColor = 'var(--accent)';
-                        btnMaint.innerHTML = 'Salva Configurazione';
-                        boxMaint.style.borderColor = 'var(--glass-border)';
-                        boxMaint.style.background = 'transparent';
-                        lblMaint.style.color = 'var(--text-main)';
+                        btnMaint.style.backgroundColor = 'var(--accent)'; btnMaint.style.borderColor = 'var(--accent)';
+                        btnMaint.innerHTML = 'Salva Sistema';
+                        boxMaint.style.borderColor = 'var(--glass-border)'; boxMaint.style.background = 'transparent'; lblMaint.style.color = 'var(--text-main)';
                     }
                 };
-                chkMaint.addEventListener('change', updateBtnColor);
-                updateBtnColor(); // Esegue al caricamento per settare il colore giusto
+                chkMaint.addEventListener('change', updateBtnColor); updateBtnColor(); 
 
                 document.getElementById('global-config-form').addEventListener('submit', (e) => {
                     e.preventDefault();
-                    const payload = {
-                        manutenzione_mode: document.getElementById('conf_manutenzione').checked,
-                        ora_apertura: document.getElementById('conf_apertura').value,
-                        ora_chiusura: document.getElementById('conf_chiusura').value
-                    };
-                    fetch('../PHP/api_impostazioni.php?action=update_config', {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-                    }).then(res => res.json()).then(resp => {
-                        if (resp.success) alert("Impostazioni salvate con successo."); else alert(resp.message);
-                    });
+                    const payload = { manutenzione_mode: document.getElementById('conf_manutenzione').checked, ora_apertura: document.getElementById('conf_apertura').value, ora_chiusura: document.getElementById('conf_chiusura').value };
+                    fetch('../PHP/api_impostazioni.php?action=update_config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+                    .then(res => res.json()).then(resp => { if (resp.success) alert("Impostazioni di sistema salvate!"); else alert(resp.message); });
                 });
             }
         });
@@ -329,10 +342,32 @@ document.addEventListener('DOMContentLoaded', () => {
             if (assetsRes.success) {
                 appState.assets = assetsRes.data.map(asset => {
                     const num = parseInt(asset.Codice_Univoco.split('-')[1]);
-                    if (asset.Tipologia === 'C') { asset.Coordinate_X = (num * 10) - 5; asset.Coordinate_Y = 25; } 
-                    else if (asset.Tipologia === 'B') { asset.Coordinate_X = 15 + ((num - 1) % 5) * 17.5; asset.Coordinate_Y = 15; } 
-                    else if (asset.Tipologia === 'A') { let fila = num <= 10 ? 0 : 1; let posInFila = num <= 10 ? num : num - 10; asset.Coordinate_X = 10 + (posInFila - 1) * 8.8; asset.Coordinate_Y = 45 + (fila * 15); } 
-                    else if (asset.Tipologia === 'A2') { asset.Coordinate_X = 20 + ((num - 1) % 5) * 15; asset.Coordinate_Y = 85; }
+                    
+                    // --- ALGORITMI DI POSIZIONAMENTO MIGLIORATI ---
+                    if (asset.Tipologia === 'C') { 
+                        // GARAGE: 10 Auto distribuite lungo la fila in alto
+                        asset.Coordinate_X = 5 + (num * 9); // Distribuisce equamente
+                        asset.Coordinate_Y = 22; // Centrate nello stallo
+                    } 
+                    else if (asset.Tipologia === 'B') { 
+                        // SALE RIUNIONI
+                        asset.Coordinate_X = 15 + ((num - 1) % 5) * 17.5; 
+                        asset.Coordinate_Y = 15; 
+                    } 
+                    else if (asset.Tipologia === 'A') { 
+                        // SCRIVANIE: Distribuite su 3 FILARI (7 + 7 + 6)
+                        let fila, posInFila;
+                        if (num <= 7) { fila = 0; posInFila = num; }
+                        else if (num <= 14) { fila = 1; posInFila = num - 7; }
+                        else { fila = 2; posInFila = num - 14; }
+                        
+                        asset.Coordinate_X = 12 + (posInFila - 1) * 12.5; 
+                        asset.Coordinate_Y = 38 + (fila * 14); 
+                    } 
+                    else if (asset.Tipologia === 'A2') { 
+                        asset.Coordinate_X = 20 + ((num - 1) % 5) * 15; 
+                        asset.Coordinate_Y = 88; 
+                    }
                     return asset;
                 });
             }
@@ -365,11 +400,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!statusBox) {
             statusBox = document.createElement('div');
             statusBox.id = 'occupancy-status-box';
-            statusBox.style.marginTop = '20px';
-            statusBox.style.padding = '15px';
-            statusBox.style.background = 'rgba(255,255,255,0.05)';
-            statusBox.style.borderRadius = '10px';
-            statusBox.style.border = '1px solid var(--glass-border)';
+            statusBox.style.marginTop = '20px'; statusBox.style.padding = '15px'; statusBox.style.background = 'rgba(255,255,255,0.05)';
+            statusBox.style.borderRadius = '10px'; statusBox.style.border = '1px solid var(--glass-border)';
             colLeft.appendChild(statusBox);
         }
 
@@ -416,10 +448,10 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `<tr><td colspan="4" style="text-align:center; padding: 20px; color: var(--text-dim);">Nessuna prenotazione attiva. Vai sulla mappa!</td></tr>`;
         } else {
             previewList.forEach(p => {
-                const avatarHtml = p.avatar ? `<img src="${p.avatar}" style="width:24px; height:24px; border-radius:50%; object-fit:cover; margin-right:8px; border:1px solid var(--accent);">` : `<i class="fas fa-user" style="color:var(--accent); margin-right:8px;"></i>`;
+                const avatarHtml = p.avatar ? `<img src="${p.avatar}" style="width:24px; height:24px; border-radius:50%; object-fit:cover; margin-right:8px; border:1px solid var(--accent); flex-shrink:0;">` : `<i class="fas fa-user" style="color:var(--accent); margin-right:8px;"></i>`;
                 html += `
                     <tr style="cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'" onclick="vaiAPrenotazioni()">
-                        <td><div style="display:flex; align-items:center;">${avatarHtml} ${p.Cognome} ${p.Nome}</div></td>
+                        <td><div style="display:flex; align-items:center;">${avatarHtml} <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 120px;">${p.Cognome} ${p.Nome}</span></div></td>
                         <td><strong>${p.Tipologia}</strong> - ${p.Codice_Univoco}</td><td>${p.Data_Prenotazione}</td><td class="status-active">${p.Stato}</td>
                     </tr>`;
             });
@@ -428,6 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
         previewContainer.innerHTML = html;
     }
 
+    // --- MINI MAPPA CON ICONE GRANDI ---
     function renderMiniMap() {
         const container = document.getElementById('mini-map-trigger');
         if (!container) return;
@@ -441,8 +474,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (layerToShow === 1) {
             const openSpaceArea = document.createElement('div');
-            openSpaceArea.style.position = 'absolute'; openSpaceArea.style.top = '35%'; openSpaceArea.style.left = '0';
-            openSpaceArea.style.width = '100%'; openSpaceArea.style.height = '40%'; openSpaceArea.style.background = 'rgba(255,255,255,0.02)';
+            openSpaceArea.style.position = 'absolute'; openSpaceArea.style.top = '30%'; openSpaceArea.style.left = '0';
+            openSpaceArea.style.width = '100%'; openSpaceArea.style.height = '50%'; openSpaceArea.style.background = 'rgba(255,255,255,0.02)';
             openSpaceArea.style.borderTop = '1px dashed rgba(255,255,255,0.1)'; openSpaceArea.style.borderBottom = '1px dashed rgba(255,255,255,0.1)';
             container.appendChild(openSpaceArea);
         }
@@ -457,25 +490,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const isOccupied = appState.prenotazioni.some(p => p.Stato === 'Attiva' && p.Data_Prenotazione === appState.currentDate && Number(p.ID_Asset) === Number(asset.ID_Asset));
 
             const dot = document.createElement('div');
-            dot.style.position = 'absolute';
-            dot.style.left = asset.Coordinate_X + '%';
-            dot.style.top = asset.Coordinate_Y + '%';
+            dot.className = 'desk';
+            dot.style.position = 'absolute'; dot.style.left = asset.Coordinate_X + '%'; dot.style.top = asset.Coordinate_Y + '%';
             dot.style.transform = 'translate(-50%, -50%)'; dot.style.display = 'flex'; dot.style.alignItems = 'center'; dot.style.justifyContent = 'center';
             dot.style.color = '#fff'; dot.style.boxShadow = '0 2px 4px rgba(0,0,0,0.5)';
 
             let iconClass = 'fa-chair'; 
+            // Dimensioni icone Preview Ingrandite per l'anteprima
             if (asset.Tipologia === 'A' || asset.Tipologia === 'A2') {
                 iconClass = asset.Tipologia === 'A' ? 'fa-chair' : 'fa-desktop';
-                dot.style.width = '28px'; dot.style.height = '28px'; dot.style.borderRadius = '6px';
+                dot.style.width = '34px'; dot.style.height = '34px'; dot.style.borderRadius = '6px';
             } else if (asset.Tipologia === 'B') {
-                iconClass = 'fa-users'; dot.style.width = '36px'; dot.style.height = '36px'; dot.style.borderRadius = '50%';
+                iconClass = 'fa-users'; dot.style.width = '42px'; dot.style.height = '42px'; dot.style.borderRadius = '50%';
             } else if (asset.Tipologia === 'C') {
-                iconClass = 'fa-car'; dot.style.width = '42px'; dot.style.height = '26px'; 
-                dot.style.borderRadius = '3px'; dot.style.border = '1px dashed rgba(255,255,255,0.8)';
+                iconClass = 'fa-car'; dot.style.width = '50px'; dot.style.height = '30px'; dot.style.borderRadius = '3px'; dot.style.border = '1px dashed rgba(255,255,255,0.8)';
             }
 
             dot.style.backgroundColor = isOccupied ? 'var(--danger, #dc3545)' : 'var(--success, #28a745)';
-            dot.innerHTML = `<i class="fas ${iconClass}" style="font-size: 0.9rem;"></i>`;
+            dot.innerHTML = `<i class="fas ${iconClass}" style="font-size: 1rem;"></i>`;
 
             mapArea.appendChild(dot);
         });
@@ -490,36 +522,39 @@ document.addEventListener('DOMContentLoaded', () => {
         const mapContainer = document.querySelector('#view-mappa .map-wrapper');
         if (!mapContainer || !headerMappa) return;
 
+        // SEZIONE LEGENDA IN CIMA ALLA MAPPA
+        const topLegend = document.createElement('div');
+        topLegend.style.display = 'flex'; topLegend.style.justifyContent = 'center'; topLegend.style.gap = '15px'; topLegend.style.marginBottom = '10px'; topLegend.style.fontSize = '12px'; topLegend.style.fontWeight = 'bold';
+        topLegend.innerHTML = `
+            <div style="display:flex; align-items:center; gap:5px;"><div style="width:12px; height:12px; background:var(--success); border-radius:3px;"></div> Disponibile</div>
+            <div style="display:flex; align-items:center; gap:5px;"><div style="width:12px; height:12px; background:var(--danger); border-radius:3px; opacity:0.6;"></div> Occupato</div>
+        `;
+        mapContainer.insertBefore(topLegend, mapContainer.firstChild);
+
         const controlliMappa = document.createElement('div');
         controlliMappa.className = 'map-controls-container';
-        // FILTRI SPOSTATI A DESTRA
-        controlliMappa.style.display = 'flex'; 
-        controlliMappa.style.gap = '20px'; 
-        controlliMappa.style.marginTop = '15px'; 
-        controlliMappa.style.alignItems = 'flex-end'; 
-        controlliMappa.style.flexWrap = 'wrap'; 
-        controlliMappa.style.width = '100%';
+        controlliMappa.style.display = 'flex'; controlliMappa.style.gap = '20px'; controlliMappa.style.marginTop = '15px'; 
+        controlliMappa.style.alignItems = 'flex-end'; controlliMappa.style.flexWrap = 'wrap'; controlliMappa.style.width = '100%';
         controlliMappa.style.justifyContent = 'flex-end';
 
         const oggi = new Date().toISOString().split('T')[0];
 
-        // ALLINEAMENTO PERFETTO: Label dritta sopra, input senza onkeydown
         controlliMappa.innerHTML = `
             <div class="map-control-group">
                 <label style="font-weight:bold; font-size:0.8rem; color:var(--text-dim);">Data Selezione</label>
-                <input type="date" id="map-date-filter" value="${appState.currentDate}" min="${oggi}" 
-                       style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--glass-border); background-color: var(--bg-main); color: var(--text-main); cursor: pointer; outline: none;">
+                <input type="date" id="map-date-filter" value="${appState.currentDate}" min="${oggi}"
+                       style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--glass-border); cursor: pointer; outline: none;">
             </div>
             <div class="map-control-group">
                 <label style="font-weight:bold; font-size:0.8rem; color:var(--text-dim);">Piano Sede</label>
-                <select id="map-layer-filter" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--glass-border); background-color: var(--bg-main); color: var(--text-main); cursor: pointer; outline: none;">
+                <select id="map-layer-filter" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--glass-border); cursor: pointer; outline: none;">
                     <option value="1">Uffici (Piano Terra)</option>
                     <option value="2">Garage (Sotterraneo)</option>
                 </select>
             </div>
             <div class="map-control-group">
                 <label style="font-weight:bold; font-size:0.8rem; color:var(--text-dim);">Filtra per Tipo</label>
-                <select id="map-type-filter" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--glass-border); background-color: var(--bg-main); color: var(--text-main); cursor: pointer; outline: none;">
+                <select id="map-type-filter" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--glass-border); cursor: pointer; outline: none;">
                     <option value="">Mostra tutte le risorse</option>
                     <option value="A">Scrivania Std (Tipo A)</option>
                     <option value="A2">Scrivania + Monitor (Tipo A2)</option>
@@ -531,14 +566,12 @@ document.addEventListener('DOMContentLoaded', () => {
         headerMappa.appendChild(controlliMappa);
 
         document.getElementById('map-date-filter').addEventListener('change', (e) => { appState.currentDate = e.target.value; updateMapState(); });
-        
         document.getElementById('map-layer-filter').addEventListener('change', (e) => { 
             appState.currentLayer = parseInt(e.target.value); 
             if (appState.currentLayer === 2) { appState.activeFilter = 'C'; } 
             else if (appState.currentLayer === 1 && appState.activeFilter === 'C') { appState.activeFilter = ''; }
             syncGlobalFiltersUI(); updateMapState(); 
         });
-
         document.getElementById('map-type-filter').addEventListener('change', (e) => { 
             appState.activeFilter = e.target.value; 
             if (appState.activeFilter === 'C') appState.currentLayer = 2;
@@ -557,9 +590,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const layerUfficio = document.createElement('div'); layerUfficio.id = 'layer-1'; layerUfficio.style.width = '100%'; layerUfficio.style.height = '100%'; layerUfficio.style.position = 'absolute';
         layerUfficio.style.cssText += bgUfficio;
-        const meetingArea = document.createElement('div'); meetingArea.style.position = 'absolute'; meetingArea.style.top = '0'; meetingArea.style.left = '0'; meetingArea.style.width = '100%'; meetingArea.style.height = '30%'; meetingArea.style.background = 'rgba(255, 255, 255, 0.03)'; meetingArea.style.borderBottom = '2px dashed rgba(255,255,255,0.1)'; meetingArea.innerHTML = '<div style="position:absolute; top:10px; left:10px; color:rgba(255,255,255,0.3); font-size:12px; font-weight:bold; letter-spacing:1px;">AREA MEETING</div>'; layerUfficio.appendChild(meetingArea);
-        const openSpaceArea = document.createElement('div'); openSpaceArea.style.position = 'absolute'; openSpaceArea.style.top = '30%'; openSpaceArea.style.left = '0'; openSpaceArea.style.width = '100%'; openSpaceArea.style.height = '45%'; openSpaceArea.innerHTML = '<div style="position:absolute; top:10px; left:10px; color:rgba(255,255,255,0.3); font-size:12px; font-weight:bold; letter-spacing:1px;">OPEN SPACE (TIPO A)</div>'; layerUfficio.appendChild(openSpaceArea);
-        const execArea = document.createElement('div'); execArea.style.position = 'absolute'; execArea.style.bottom = '0'; execArea.style.left = '0'; execArea.style.width = '100%'; execArea.style.height = '25%'; execArea.style.background = 'rgba(255, 255, 255, 0.02)'; execArea.style.borderTop = '2px dashed rgba(255,255,255,0.1)'; execArea.innerHTML = '<div style="position:absolute; top:10px; left:10px; color:rgba(255,255,255,0.3); font-size:12px; font-weight:bold; letter-spacing:1px;">AREA EXECUTIVE (TIPO A2)</div>'; layerUfficio.appendChild(execArea);
+        
+        // Testi in background (Con pointer-events: none per evitare bug di sovrapposizione hover)
+        const meetingArea = document.createElement('div'); meetingArea.style.position = 'absolute'; meetingArea.style.top = '0'; meetingArea.style.left = '0'; meetingArea.style.width = '100%'; meetingArea.style.height = '30%'; meetingArea.style.background = 'rgba(255, 255, 255, 0.03)'; meetingArea.style.borderBottom = '2px dashed rgba(255,255,255,0.1)'; meetingArea.innerHTML = '<div class="map-text-overlay" style="top:10px; left:10px;">AREA MEETING</div>'; layerUfficio.appendChild(meetingArea);
+        const openSpaceArea = document.createElement('div'); openSpaceArea.style.position = 'absolute'; openSpaceArea.style.top = '30%'; openSpaceArea.style.left = '0'; openSpaceArea.style.width = '100%'; openSpaceArea.style.height = '48%'; openSpaceArea.innerHTML = '<div class="map-text-overlay" style="top:10px; left:10px;">OPEN SPACE (TIPO A)</div>'; layerUfficio.appendChild(openSpaceArea);
+        const execArea = document.createElement('div'); execArea.style.position = 'absolute'; execArea.style.bottom = '0'; execArea.style.left = '0'; execArea.style.width = '100%'; execArea.style.height = '22%'; execArea.style.background = 'rgba(255, 255, 255, 0.02)'; execArea.style.borderTop = '2px dashed rgba(255,255,255,0.1)'; execArea.innerHTML = '<div class="map-text-overlay" style="top:10px; left:10px;">AREA EXECUTIVE (TIPO A2)</div>'; layerUfficio.appendChild(execArea);
 
         const layerParcheggio = document.createElement('div'); layerParcheggio.id = 'layer-2'; layerParcheggio.style.width = '100%'; layerParcheggio.style.height = '100%'; layerParcheggio.style.position = 'absolute'; layerParcheggio.style.display = 'none';
         layerParcheggio.style.cssText += bgParcheggio;
@@ -579,7 +614,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let iconClass = 'fa-chair'; 
             if (asset.Tipologia === 'A' || asset.Tipologia === 'A2') { iconClass = asset.Tipologia === 'A' ? 'fa-chair' : 'fa-desktop'; div.style.width = '55px'; div.style.height = '55px'; div.style.borderRadius = '8px'; } 
             else if (asset.Tipologia === 'B') { iconClass = 'fa-users'; div.style.width = '70px'; div.style.height = '70px'; div.style.borderRadius = '50%'; } 
-            else if (asset.Tipologia === 'C') { iconClass = 'fa-car'; div.style.width = '50px'; div.style.height = '80px'; div.style.borderRadius = '4px'; div.style.border = '2px dashed rgba(255,255,255,0.8)'; }
+            else if (asset.Tipologia === 'C') { iconClass = 'fa-car'; div.style.width = '65px'; div.style.height = '40px'; div.style.borderRadius = '4px'; div.style.border = '2px dashed rgba(255,255,255,0.8)'; }
 
             const numAsset = asset.Codice_Univoco.split('-')[1];
             div.innerHTML = `<i class="fas ${iconClass}" style="font-size: 1.4rem; margin-bottom: 4px;"></i><span style="font-size: 0.7rem; font-weight: bold; background: rgba(0,0,0,0.5); padding: 2px 5px; border-radius: 4px;">${numAsset}</span>`;
@@ -637,17 +672,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (parseInt(p.Contatore_Modifiche) < 2) { 
                 actionButtons += `<button class="btn-action-icon btn-mod-icon" title="Modifica Data" onclick="apriModaleModifica(${p.ID_Prenotazione}, ${p.ID_Asset}, '${p.Tipologia} - ${p.Codice_Univoco}', '${p.Data_Prenotazione}')"><i class="fas fa-edit"></i></button> `; 
             }
-            actionButtons += `<button class="btn-action-icon btn-rev-icon" title="Annulla Prenotazione" onclick="annullaPrenotazione(${p.ID_Prenotazione})"><i class="fas fa-times"></i></button>`;
+            // SOSTITUITA ICONA CON IL CESTINO TRASH
+            actionButtons += `<button class="btn-action-icon btn-rev-icon" title="Elimina Prenotazione" onclick="annullaPrenotazione(${p.ID_Prenotazione})"><i class="fas fa-trash"></i></button>`;
             
-            const avatarHtml = p.avatar ? `<img src="${p.avatar}" style="width:30px; height:30px; border-radius:50%; object-fit:cover; border: 1px solid var(--accent);">` : `<div style="width:30px; height:30px; border-radius:50%; background:var(--glass-border); display:flex; align-items:center; justify-content:center; font-size:0.8rem;"><i class="fas fa-user"></i></div>`;
+            const avatarHtml = p.avatar ? `<img src="${p.avatar}" style="width:30px; height:30px; border-radius:50%; object-fit:cover; border: 1px solid var(--accent); flex-shrink:0;">` : `<div style="width:30px; height:30px; border-radius:50%; background:var(--glass-border); display:flex; align-items:center; justify-content:center; font-size:0.8rem; flex-shrink:0;"><i class="fas fa-user"></i></div>`;
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><div style="display:flex; align-items:center; gap:10px;">${avatarHtml} <span>${p.Cognome} ${p.Nome}</span></div></td>
+                <td><div style="display:flex; align-items:center; gap:10px;">${avatarHtml} <span title="${p.Cognome} ${p.Nome}">${p.Cognome} ${p.Nome}</span></div></td>
                 <td><strong style="color:var(--accent);">${p.Tipologia}</strong> - ${p.Codice_Univoco}</td>
                 <td>${p.Data_Prenotazione}</td>
                 <td class="status-active">${p.Stato}</td>
-                <td class="text-right">${actionButtons}</td>
+                <td class="text-right" style="overflow:visible;">${actionButtons}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -663,10 +699,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="modal-header"><h3 id="res-modal-title">Prenota Risorsa</h3><button type="button" class="close-modal" onclick="closeReservationModal()">&times;</button></div>
                     <form id="reservation-form">
                         <input type="hidden" id="res_id_asset" name="id_asset"><input type="hidden" id="res_id_prenotazione" name="id_prenotazione">
-                        <div class="form-group"><label>Risorsa</label><input type="text" id="res_asset_name" readonly style="background-color: var(--bg-main); cursor: not-allowed; border: 1px solid var(--glass-border); padding: 10px; border-radius: 5px; width: 100%; color: var(--text-main); font-weight:bold;"></div>
+                        <div class="form-group"><label>Risorsa</label><input type="text" id="res_asset_name" readonly style="background-color: var(--glass-bg); cursor: not-allowed; border: 1px solid var(--glass-border); padding: 10px; border-radius: 5px; width: 100%; color: var(--text-main); font-weight:bold;"></div>
                         <div class="form-row" style="display:flex; gap:10px; margin-top:15px;">
-                            <div style="flex:1;"><label id="label_data_inizio">Data Inizio</label><input type="date" id="res_data_inizio" required min="${oggi}" style="padding: 10px; border-radius: 5px; border: 1px solid var(--glass-border); background-color: var(--bg-main); color: var(--text-main); width: 100%; cursor:pointer;"></div>
-                            <div style="flex:1;" id="box_data_fine"><label>Data Fine (Max 30 gg)</label><input type="date" id="res_data_fine" min="${oggi}" style="padding: 10px; border-radius: 5px; border: 1px solid var(--glass-border); background-color: var(--bg-main); color: var(--text-main); width: 100%; cursor:pointer;"></div>
+                            <div style="flex:1;"><label id="label_data_inizio">Data Inizio</label><input type="date" id="res_data_inizio" required min="${oggi}" style="padding: 10px; border-radius: 5px; border: 1px solid var(--glass-border); background-color: var(--glass-bg); color: var(--text-main); width: 100%; cursor:pointer;"></div>
+                            <div style="flex:1;" id="box_data_fine"><label>Data Fine (Max 30 gg)</label><input type="date" id="res_data_fine" min="${oggi}" style="padding: 10px; border-radius: 5px; border: 1px solid var(--glass-border); background-color: var(--glass-bg); color: var(--text-main); width: 100%; cursor:pointer;"></div>
                         </div>
                         <div class="modal-footer" style="margin-top: 20px;"><button type="button" class="btn-action btn-rev" style="background:var(--danger);" onclick="closeReservationModal()">Annulla</button><button type="submit" class="btn-action btn-mod">Conferma Salva</button></div>
                     </form>
@@ -698,7 +734,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     window.closeReservationModal = function() { const modal = document.getElementById('reservation-modal'); if (modal) modal.classList.remove('active'); };
     window.annullaPrenotazione = function (id_prenotazione) {
-        if (!confirm("Sei sicuro di voler annullare questa prenotazione?")) return;
+        if (!confirm("Sei sicuro di voler annullare (eliminare) questa prenotazione?")) return;
         fetch('../PHP/api_prenotazioni.php?action=cancel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id_prenotazione: id_prenotazione }) }).then(res => res.json()).then(async data => { if (data.success) await reloadPrenotazioni(); else alert("Errore: " + data.message); }).catch(err => console.error(err));
     };
 
