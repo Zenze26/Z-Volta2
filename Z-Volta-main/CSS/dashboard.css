@@ -98,7 +98,7 @@ body {
 
 /* --- 6. MAPPA E CONTROLLI --- */
 .map-wrapper { display: flex; flex-direction: column; width: 100%; position: relative; }
-.map-controls-container { display: flex; gap: 20px; margin-top: 15px; align-items: flex-end; flex-wrap: wrap; width: 100%; justify-content: flex-end; }
+.map-controls-container { display: flex;align-items: center; gap: 20px; margin-top: 15px; align-items: flex-end; flex-wrap: wrap; width: 100%; justify-content: flex-end; }
 .map-control-group { display: flex; flex-direction: column; gap: 5px; align-items: flex-start; }
 
 .desk { position: absolute; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.4); transition: transform 0.2s; }
