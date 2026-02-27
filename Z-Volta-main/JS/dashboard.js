@@ -23,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const bgUfficio = `background-color: #1e293b; background-image: linear-gradient(rgba(255,255,255,0.03) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,0.03) 2px, transparent 2px), linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px); background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px; background-position: -2px -2px, -2px -2px, -1px -1px, -1px -1px;`;
     
-    // NUOVO GARAGE: Posti proporzionati in alto (fino al 45%), Strada spaziosa sotto.
     const bgParcheggio = `
         background-color: #1a1c23; 
         background-image: 
@@ -340,36 +339,9 @@ document.addEventListener('DOMContentLoaded', () => {
             fetch('../PHP/api_prenotazioni.php?action=list').then(res => res.json())
         ]).then(([assetsRes, prenRes]) => {
             if (assetsRes.success) {
-                appState.assets = assetsRes.data.map(asset => {
-                    const num = parseInt(asset.Codice_Univoco.split('-')[1]);
-                    
-                    // --- ALGORITMI DI POSIZIONAMENTO MIGLIORATI ---
-                    if (asset.Tipologia === 'C') { 
-                        // GARAGE: 10 Auto distribuite lungo la fila in alto
-                        asset.Coordinate_X = 5 + (num * 9); // Distribuisce equamente
-                        asset.Coordinate_Y = 22; // Centrate nello stallo
-                    } 
-                    else if (asset.Tipologia === 'B') { 
-                        // SALE RIUNIONI
-                        asset.Coordinate_X = 15 + ((num - 1) % 5) * 17.5; 
-                        asset.Coordinate_Y = 15; 
-                    } 
-                    else if (asset.Tipologia === 'A') { 
-                        // SCRIVANIE: Distribuite su 3 FILARI (7 + 7 + 6)
-                        let fila, posInFila;
-                        if (num <= 7) { fila = 0; posInFila = num; }
-                        else if (num <= 14) { fila = 1; posInFila = num - 7; }
-                        else { fila = 2; posInFila = num - 14; }
-                        
-                        asset.Coordinate_X = 12 + (posInFila - 1) * 12.5; 
-                        asset.Coordinate_Y = 38 + (fila * 14); 
-                    } 
-                    else if (asset.Tipologia === 'A2') { 
-                        asset.Coordinate_X = 20 + ((num - 1) % 5) * 15; 
-                        asset.Coordinate_Y = 88; 
-                    }
-                    return asset;
-                });
+                // Rimosso override JS delle coordinate.
+                // Vengono usate esattamente e rigorosamente quelle salvate nel Database SQL (es. 10%, 20%, ecc.)
+                appState.assets = assetsRes.data;
             }
             if (prenRes.success) appState.prenotazioni = prenRes.data;
             
@@ -496,7 +468,6 @@ document.addEventListener('DOMContentLoaded', () => {
             dot.style.color = '#fff'; dot.style.boxShadow = '0 2px 4px rgba(0,0,0,0.5)';
 
             let iconClass = 'fa-chair'; 
-            // Dimensioni icone Preview Ingrandite per l'anteprima
             if (asset.Tipologia === 'A' || asset.Tipologia === 'A2') {
                 iconClass = asset.Tipologia === 'A' ? 'fa-chair' : 'fa-desktop';
                 dot.style.width = '34px'; dot.style.height = '34px'; dot.style.borderRadius = '6px';
@@ -522,14 +493,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const mapContainer = document.querySelector('#view-mappa .map-wrapper');
         if (!mapContainer || !headerMappa) return;
 
-        // SEZIONE LEGENDA IN CIMA ALLA MAPPA
-        const topLegend = document.createElement('div');
-        topLegend.style.display = 'flex'; topLegend.style.justifyContent = 'center'; topLegend.style.gap = '15px'; topLegend.style.marginBottom = '10px'; topLegend.style.fontSize = '12px'; topLegend.style.fontWeight = 'bold';
-        topLegend.innerHTML = `
-            <div style="display:flex; align-items:center; gap:5px;"><div style="width:12px; height:12px; background:var(--success); border-radius:3px;"></div> Disponibile</div>
-            <div style="display:flex; align-items:center; gap:5px;"><div style="width:12px; height:12px; background:var(--danger); border-radius:3px; opacity:0.6;"></div> Occupato</div>
-        `;
-        mapContainer.insertBefore(topLegend, mapContainer.firstChild);
+        // RIMOSSA l'iniezione della legenda duplicata. Ne resterà solo una (nella PHP).
 
         const controlliMappa = document.createElement('div');
         controlliMappa.className = 'map-controls-container';
@@ -591,7 +555,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const layerUfficio = document.createElement('div'); layerUfficio.id = 'layer-1'; layerUfficio.style.width = '100%'; layerUfficio.style.height = '100%'; layerUfficio.style.position = 'absolute';
         layerUfficio.style.cssText += bgUfficio;
         
-        // Testi in background (Con pointer-events: none per evitare bug di sovrapposizione hover)
         const meetingArea = document.createElement('div'); meetingArea.style.position = 'absolute'; meetingArea.style.top = '0'; meetingArea.style.left = '0'; meetingArea.style.width = '100%'; meetingArea.style.height = '30%'; meetingArea.style.background = 'rgba(255, 255, 255, 0.03)'; meetingArea.style.borderBottom = '2px dashed rgba(255,255,255,0.1)'; meetingArea.innerHTML = '<div class="map-text-overlay" style="top:10px; left:10px;">AREA MEETING</div>'; layerUfficio.appendChild(meetingArea);
         const openSpaceArea = document.createElement('div'); openSpaceArea.style.position = 'absolute'; openSpaceArea.style.top = '30%'; openSpaceArea.style.left = '0'; openSpaceArea.style.width = '100%'; openSpaceArea.style.height = '48%'; openSpaceArea.innerHTML = '<div class="map-text-overlay" style="top:10px; left:10px;">OPEN SPACE (TIPO A)</div>'; layerUfficio.appendChild(openSpaceArea);
         const execArea = document.createElement('div'); execArea.style.position = 'absolute'; execArea.style.bottom = '0'; execArea.style.left = '0'; execArea.style.width = '100%'; execArea.style.height = '22%'; execArea.style.background = 'rgba(255, 255, 255, 0.02)'; execArea.style.borderTop = '2px dashed rgba(255,255,255,0.1)'; execArea.innerHTML = '<div class="map-text-overlay" style="top:10px; left:10px;">AREA EXECUTIVE (TIPO A2)</div>'; layerUfficio.appendChild(execArea);
@@ -672,7 +635,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (parseInt(p.Contatore_Modifiche) < 2) { 
                 actionButtons += `<button class="btn-action-icon btn-mod-icon" title="Modifica Data" onclick="apriModaleModifica(${p.ID_Prenotazione}, ${p.ID_Asset}, '${p.Tipologia} - ${p.Codice_Univoco}', '${p.Data_Prenotazione}')"><i class="fas fa-edit"></i></button> `; 
             }
-            // SOSTITUITA ICONA CON IL CESTINO TRASH
             actionButtons += `<button class="btn-action-icon btn-rev-icon" title="Elimina Prenotazione" onclick="annullaPrenotazione(${p.ID_Prenotazione})"><i class="fas fa-trash"></i></button>`;
             
             const avatarHtml = p.avatar ? `<img src="${p.avatar}" style="width:30px; height:30px; border-radius:50%; object-fit:cover; border: 1px solid var(--accent); flex-shrink:0;">` : `<div style="width:30px; height:30px; border-radius:50%; background:var(--glass-border); display:flex; align-items:center; justify-content:center; font-size:0.8rem; flex-shrink:0;"><i class="fas fa-user"></i></div>`;

@@ -97,12 +97,20 @@ body {
 .asset-card i { font-size: 20px; color: var(--accent); margin-bottom: 5px; }
 .asset-card span { font-size: 12px; display: block; line-height: 1.3; }
 
-/* --- 6. MAPPA --- */
-.map-wrapper { display: flex; flex-direction: column; width: 100%; }
-.desk { position: absolute; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.4); transition: transform 0.2s; }
-.d-free { background: var(--success); color: white; }
-.d-busy { background: var(--danger); color: white; opacity: 0.6; cursor: not-allowed !important; }
+/* --- 6. MAPPA E LEGENDA --- */
+.map-wrapper { display: flex; flex-direction: column; width: 100%; position: relative; }
+#map-area { border-radius: 10px; background: var(--map-bg); overflow: hidden; position: relative; }
+.desk { position: absolute; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.4); transition: transform 0.2s; border-radius: 5px; font-size: 12px; font-weight: bold;}
+.d-free { background: var(--success); color: white; border: 1px solid rgba(255,255,255,0.3); }
+.d-busy { background: var(--danger); color: white; opacity: 0.7; cursor: not-allowed !important; }
 .desk.d-busy:hover { transform: none; z-index: 1; box-shadow: none; }
+
+/* FIX LEGENDA: Assicuriamoci che non sia ripetuta e sia ben posizionata */
+.map-legend-container { display: flex; justify-content: center; gap: 20px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; margin-bottom: 10px; }
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-main); }
+.legend-color { width: 16px; height: 16px; border-radius: 4px; }
+.legend-color.free { background: var(--success); }
+.legend-color.busy { background: var(--danger); opacity: 0.7; }
 
 /* FIX TESTI INTERNI ALLA MAPPA (Evita glitch di hover) */
 .map-text-overlay { position: absolute; color: rgba(255,255,255,0.4); font-size: 11px; font-weight: bold; letter-spacing: 1px; padding: 10px; pointer-events: none; z-index: 0; }
@@ -124,7 +132,7 @@ td { padding: 8px 10px; border-bottom: 1px solid var(--glass-border); color: var
 ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 [data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(37, 150, 190, 0.4); }
 
-/* --- 9. MODALI E FORM (FIX COLORI SELECT) --- */
+/* --- 9. MODALI E FORM --- */
 .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; }
 .modal-overlay.active { display: flex; animation: fadeIn 0.2s; }
 .modal-content { width: 400px; background: var(--bg-overlay-2); border: 1px solid var(--accent); }
@@ -134,11 +142,7 @@ td { padding: 8px 10px; border-bottom: 1px solid var(--glass-border); color: var
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 label { font-size: 12px; color: var(--accent); margin-bottom: 4px; }
 
-/* Input e Select Fixati per non avere nero su nero */
-input, select { 
-    background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); padding: 8px; 
-    border-radius: 5px; color: var(--text-main); font-family: inherit; 
-}
+input, select { background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); padding: 8px; border-radius: 5px; color: var(--text-main); font-family: inherit; }
 input:focus, select:focus { outline: none; border-color: var(--accent); background: rgba(37, 150, 190, 0.1); }
 select option { background-color: #1e293b; color: #ffffff; }
 
@@ -169,40 +173,43 @@ input:checked + .slider { background-color: var(--danger); } input:checked + .sl
 }
 
 @media screen and (max-width: 768px) {
-    body { padding: 10px; height: 100vh; overflow: hidden; }
-    .dashboard-grid { display: flex; flex-direction: column; gap: 10px; }
+    body { padding: 10px; height: 100vh; overflow: auto; }
+    .dashboard-grid { display: flex; flex-direction: column; gap: 15px; overflow-y: auto; height: auto;}
 
     /* BARRA SUPERIORE MOBILE */
-    .sidebar { flex-direction: row; justify-content: space-between; align-items: center; padding: 10px 15px; flex-shrink: 0; border-radius: 12px; }
-    .sidebar-top { display: flex; flex-direction: row; align-items: center; width: 100%; gap: 10px; }
-    .profile-section { margin-bottom: 0; margin-right: 5px; }
-    .avatar { width: 40px; height: 40px; font-size: 16px; margin: 0; border-width: 1px; }
+    .sidebar { flex-direction: row; justify-content: space-between; align-items: center; padding: 10px; flex-shrink: 0; border-radius: 12px; }
+    .sidebar-top { display: flex; flex-direction: row; align-items: center; gap: 10px; }
+    .profile-section { margin-bottom: 0; }
+    .avatar { width: 40px; height: 40px; font-size: 16px; margin: 0; border-width: 2px; }
     .user-info, .section-title { display: none; }
     
-    .nav-menu { display: flex; flex-direction: row; gap: 8px; overflow-x: auto; padding-bottom: 2px; margin: 0; -webkit-overflow-scrolling: touch; }
-    .nav-menu::-webkit-scrollbar { height: 0px; }
-    .nav-item a { margin-bottom: 0; padding: 8px 12px; white-space: nowrap; font-size: 13px; border-radius: 8px; }
+    .nav-menu { display: flex; flex-direction: row; gap: 5px; overflow-x: auto; padding-bottom: 0; margin: 0; flex-grow: 1; justify-content: center; }
+    .nav-item a { margin-bottom: 0; padding: 8px 12px; font-size: 14px; border-radius: 8px; white-space: nowrap; }
     
-    /* Fix Logout Button Alignment */
-    .logout-item { margin-top: 0; border-top: none; padding-top: 0; border-left: 1px solid var(--glass-border); padding-left: 10px; margin-left: auto; }
-    .logout-item a { padding: 8px 10px; }
+    /* FIX BOTTONE LOGOUT: Rimosso lo schiacciamento a destra */
+    .logout-item { margin: 0 0 0 10px; border: none; padding: 0; display: flex; align-items: center; }
+    .logout-item a { padding: 8px 12px; background: rgba(255, 95, 87, 0.15); border: 1px solid var(--danger); border-radius: 8px; justify-content: center; }
 
-    .main-content { overflow-y: auto; padding-bottom: 10px; }
+    .main-content { overflow-y: visible; padding-bottom: 20px; height: auto;}
     #view-dashboard.active { display: flex; flex-direction: column; }
     .top-row { display: flex; flex-direction: column; height: auto; }
     
-    /* MAPPA SCROLLABILE SU MOBILE (Risolve tutti i bug visivi!) */
-    .map-wrapper { overflow-x: auto; padding-bottom: 10px; }
-    #map-area { min-width: 700px; height: 450px !important; }
+    /* FIX DIMENSIONE MINIMAPPA: Più compatta e proporzionata */
+    .map-wrapper { overflow-x: auto; padding-bottom: 10px; -webkit-overflow-scrolling: touch; }
+    #map-area { min-width: 100%; height: 280px !important; }
 
     /* Tabelle Swipeabili */
-    .table-scroll { overflow-x: auto; }
-    table { min-width: 600px; }
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch;}
+    table { min-width: 650px; }
     
-    .modal-content { width: 92%; max-width: none; padding: 15px; }
+    .modal-content { width: 95%; max-width: 400px; padding: 20px; margin: 10px; }
+    .settings-grid { grid-template-columns: 1fr; }
 }
 
 @media screen and (max-width: 480px) {
+    .nav-item a span, .logout-item a span { display: none; }
     .nav-item a, .logout-item a { font-size: 0px !important; padding: 10px; justify-content: center; }
     .nav-item a i, .logout-item a i { font-size: 18px !important; margin-right: 0 !important; }
+    .avatar { width: 35px; height: 35px; }
+    .asset-card { padding: 15px; }
 }

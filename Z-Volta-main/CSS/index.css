@@ -102,23 +102,26 @@ input:focus { background: rgba(0, 0, 0, 0.5); border-color: #2596be; box-shadow:
    ======================================================================== */
 @media screen and (max-width: 480px) {
     .login-wrapper {
-        padding: 30px 20px;
-        margin: 15px;
-        width: calc(100% - 30px); /* Previene sbavature laterali */
+        padding: 25px 15px;
+        margin: 10px;
+        width: 100%; 
+        box-sizing: border-box;
     }
-    h1 { font-size: 24px; }
+    h1 { font-size: 22px; margin-bottom: 20px; }
     
     .captcha-area {
-        flex-direction: column; /* Incolonna il Captcha per evitare che esca dallo schermo */
-        gap: 15px;
+        flex-direction: column; 
+        gap: 10px;
     }
     
     .captcha-preview, .captcha-input {
         width: 100%; 
+        box-sizing: border-box;
     }
     
     .options {
-        flex-direction: column; /* Incolonna "Ricordami" e "Password dimenticata" */
+        flex-direction: column; 
         gap: 15px;
+        align-items: flex-start;
     }
 }
