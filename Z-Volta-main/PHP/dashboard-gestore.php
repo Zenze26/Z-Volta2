@@ -41,7 +41,7 @@ require_once 'config.php';
                     <li class="nav-item"><a href="#" class="nav-link" data-target="view-prenotazioni"><i class="fas fa-calendar-alt"></i> Prenotazioni</a></li>
                     <li class="nav-item"><a href="#" class="nav-link" data-target="view-utenti"><i class="fas fa-users"></i> Utenti</a></li>
                     <li class="nav-item"><a href="#" class="nav-link" data-target="view-impostazioni"><i class="fas fa-cog"></i> Impostazioni</a></li>
-                    <li class="nav-item theme-toggle-item"><a href="#" id="theme-toggle"><i class="fas fa-sun"></i><span>Light Mode</span></a></li>
+                    
                 </ul>
             </div>
 
@@ -86,10 +86,7 @@ require_once 'config.php';
                 <div class="glass-box full-height map-wrapper">
                     <div class="admin-header">
                         <div class="section-title"><i class="fas fa-map-marked-alt"></i> Mappa Interattiva Sede</div>
-                        <div class="legend">
-                            <span class="dot free" style="background-color: var(--success); width:10px; height:10px; display:inline-block; border-radius:50%;"></span> Disponibile
-                            <span class="dot busy" style="background-color: var(--danger); width:10px; height:10px; display:inline-block; border-radius:50%; margin-left:10px;"></span> Occupato
-                        </div>
+                        
                     </div>
                     <div id="map-area" style="position: relative; width: 100%; height: 100%; min-height: 500px; background-color: var(--map-bg); border: 1px solid var(--glass-border); border-radius: 10px; overflow: hidden;">
                     </div>

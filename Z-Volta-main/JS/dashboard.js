@@ -23,17 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const bgUfficio = `background-color: #1e293b; background-image: linear-gradient(rgba(255,255,255,0.03) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,0.03) 2px, transparent 2px), linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px); background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px; background-position: -2px -2px, -2px -2px, -1px -1px, -1px -1px;`;
     
-    const bgParcheggio = `
-        background-color: #1a1c23; 
-        background-image: 
-            linear-gradient(90deg, rgba(255,255,255,0.3) 50%, transparent 50%), 
-            linear-gradient(0deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.4) 55%, transparent 55%), 
-            linear-gradient(0deg, transparent 43%, rgba(255,255,255,0.5) 43%, rgba(255,255,255,0.5) 45%, transparent 45%), 
-            repeating-linear-gradient(90deg, transparent 0%, transparent calc(10% - 2px), rgba(255,255,255,0.4) calc(10% - 2px), rgba(255,255,255,0.4) 10%); 
-        background-size: 15% 4px, 100% 100%, 100% 100%, 100% 45%; 
-        background-position: 0 75%, 0 0, 0 0, 0 0; 
-        background-repeat: repeat-x, no-repeat, no-repeat, no-repeat;
-    `;
+    // Garage proporzionato
+    const bgParcheggio = `background-color: #1a1c23; background-image: linear-gradient(90deg, rgba(255,255,255,0.3) 50%, transparent 50%), linear-gradient(0deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.4) 55%, transparent 55%), linear-gradient(0deg, transparent 43%, rgba(255,255,255,0.5) 43%, rgba(255,255,255,0.5) 45%, transparent 45%), repeating-linear-gradient(90deg, transparent 0%, transparent calc(10% - 2px), rgba(255,255,255,0.4) calc(10% - 2px), rgba(255,255,255,0.4) 10%); background-size: 15% 4px, 100% 100%, 100% 100%, 100% 45%; background-position: 0 75%, 0 0, 0 0, 0 0; background-repeat: repeat-x, no-repeat, no-repeat, no-repeat;`;
 
     function applyTheme(isLight) {
         if(isLight) document.body.setAttribute('data-theme', 'light');
@@ -41,9 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const savedTheme = localStorage.getItem('dashboard-theme');
     applyTheme(savedTheme === 'light');
-    const oldThemeBtn = document.getElementById('theme-toggle');
-    if(oldThemeBtn) oldThemeBtn.style.display = 'none';
-
+    
     function loadSidebarProfile() {
         fetch('../PHP/api_impostazioni.php?action=get_profile').then(res => res.json()).then(res => {
             const avatarDiv = document.querySelector('.profile-section .avatar');
@@ -108,6 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- GESTIONE UTENTI ---
     const btnViewUtenti = document.querySelector('.nav-link[data-target="view-utenti"]');
     if (btnViewUtenti) {
         btnViewUtenti.addEventListener('click', fetchUsers);
@@ -191,6 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     window.deleteUser = function (id) { if (!confirm('Eliminare utente?')) return; fetch('../PHP/api_utenti.php', { method: 'DELETE', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id}) }).then(res => res.json()).then(data => { if(data.success) fetchUsers(); else alert(data.message); }); };
 
+    // --- IMPOSTAZIONI ---
     function renderImpostazioniComplete() {
         const impContainer = document.getElementById('view-impostazioni');
         if (!impContainer) return;
@@ -256,14 +247,8 @@ document.addEventListener('DOMContentLoaded', () => {
             let configHtml = `
                 <div class="section-title"><i class="fas fa-cogs"></i> Impostazioni Applicazione</div>
                 <div class="setting-item" style="padding:10px; border-radius:8px; border:1px solid var(--glass-border); margin-bottom:15px;">
-                    <div>
-                        <div class="setting-label">Tema Interfaccia</div>
-                        <div class="setting-desc">Passa alla modalità chiara o scura.</div>
-                    </div>
-                    <label class="switch">
-                        <input type="checkbox" id="settings-theme-toggle" ${document.body.getAttribute('data-theme') === 'light' ? 'checked' : ''}>
-                        <span class="slider round"></span>
-                    </label>
+                    <div><div class="setting-label">Tema Interfaccia</div><div class="setting-desc">Passa alla modalità chiara o scura.</div></div>
+                    <label class="switch"><input type="checkbox" id="settings-theme-toggle" ${document.body.getAttribute('data-theme') === 'light' ? 'checked' : ''}><span class="slider round"></span></label>
                 </div>
             `;
 
@@ -339,9 +324,35 @@ document.addEventListener('DOMContentLoaded', () => {
             fetch('../PHP/api_prenotazioni.php?action=list').then(res => res.json())
         ]).then(([assetsRes, prenRes]) => {
             if (assetsRes.success) {
-                // Rimosso override JS delle coordinate.
-                // Vengono usate esattamente e rigorosamente quelle salvate nel Database SQL (es. 10%, 20%, ecc.)
-                appState.assets = assetsRes.data;
+                appState.assets = assetsRes.data.map(asset => {
+                    const num = parseInt(asset.Codice_Univoco.split('-')[1]);
+                    
+                    // --- ALGORITMO DI RENDERING OTTIMIZZATO ---
+                    if (asset.Tipologia === 'C') { 
+                        // GARAGE: Perfettamente centrati negli stalli
+                        asset.Coordinate_X = 5 + ((num - 1) * 10); 
+                        asset.Coordinate_Y = 22; 
+                    } 
+                    else if (asset.Tipologia === 'B') { 
+                        // SALE RIUNIONI
+                        asset.Coordinate_X = 15 + ((num - 1) % 5) * 17.5; 
+                        asset.Coordinate_Y = 15; 
+                    } 
+                    else if (asset.Tipologia === 'A') { 
+                        // SCRIVANIE: 3 righe da 7 scrivanie (Totale 21 postazioni)
+                        // Posizioni X: 12.5%, 25%, 37.5%, 50%, 62.5%, 75%, 87.5%
+                        let fila = Math.floor((num - 1) / 7); // Fila 0, 1, 2
+                        let posInFila = ((num - 1) % 7) + 1; // Colonna 1 a 7
+                        
+                        asset.Coordinate_X = 12.5 + (posInFila - 1) * 12.5; 
+                        asset.Coordinate_Y = 40 + (fila * 13); // Y: 40%, 53%, 66%
+                    } 
+                    else if (asset.Tipologia === 'A2') { 
+                        asset.Coordinate_X = 20 + ((num - 1) % 5) * 15; 
+                        asset.Coordinate_Y = 88; 
+                    }
+                    return asset;
+                });
             }
             if (prenRes.success) appState.prenotazioni = prenRes.data;
             
@@ -372,8 +383,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!statusBox) {
             statusBox = document.createElement('div');
             statusBox.id = 'occupancy-status-box';
-            statusBox.style.marginTop = '20px'; statusBox.style.padding = '15px'; statusBox.style.background = 'rgba(255,255,255,0.05)';
-            statusBox.style.borderRadius = '10px'; statusBox.style.border = '1px solid var(--glass-border)';
+            statusBox.style.marginTop = '20px';
+            statusBox.style.padding = '15px';
+            statusBox.style.background = 'rgba(255,255,255,0.05)';
+            statusBox.style.borderRadius = '10px';
+            statusBox.style.border = '1px solid var(--glass-border)';
             colLeft.appendChild(statusBox);
         }
 
@@ -432,7 +446,6 @@ document.addEventListener('DOMContentLoaded', () => {
         previewContainer.innerHTML = html;
     }
 
-    // --- MINI MAPPA CON ICONE GRANDI ---
     function renderMiniMap() {
         const container = document.getElementById('mini-map-trigger');
         if (!container) return;
@@ -462,23 +475,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const isOccupied = appState.prenotazioni.some(p => p.Stato === 'Attiva' && p.Data_Prenotazione === appState.currentDate && Number(p.ID_Asset) === Number(asset.ID_Asset));
 
             const dot = document.createElement('div');
-            dot.className = 'desk';
+            dot.className = 'desk'; 
             dot.style.position = 'absolute'; dot.style.left = asset.Coordinate_X + '%'; dot.style.top = asset.Coordinate_Y + '%';
             dot.style.transform = 'translate(-50%, -50%)'; dot.style.display = 'flex'; dot.style.alignItems = 'center'; dot.style.justifyContent = 'center';
             dot.style.color = '#fff'; dot.style.boxShadow = '0 2px 4px rgba(0,0,0,0.5)';
 
             let iconClass = 'fa-chair'; 
+            // Dimensioni icone Preview proporzionate
             if (asset.Tipologia === 'A' || asset.Tipologia === 'A2') {
                 iconClass = asset.Tipologia === 'A' ? 'fa-chair' : 'fa-desktop';
-                dot.style.width = '34px'; dot.style.height = '34px'; dot.style.borderRadius = '6px';
+                dot.style.width = '24px'; dot.style.height = '24px'; dot.style.borderRadius = '4px';
             } else if (asset.Tipologia === 'B') {
-                iconClass = 'fa-users'; dot.style.width = '42px'; dot.style.height = '42px'; dot.style.borderRadius = '50%';
+                iconClass = 'fa-users'; dot.style.width = '30px'; dot.style.height = '30px'; dot.style.borderRadius = '50%';
             } else if (asset.Tipologia === 'C') {
-                iconClass = 'fa-car'; dot.style.width = '50px'; dot.style.height = '30px'; dot.style.borderRadius = '3px'; dot.style.border = '1px dashed rgba(255,255,255,0.8)';
+                iconClass = 'fa-car'; dot.style.width = '36px'; dot.style.height = '20px'; 
+                dot.style.borderRadius = '3px'; dot.style.border = '1px dashed rgba(255,255,255,0.8)';
             }
 
             dot.style.backgroundColor = isOccupied ? 'var(--danger, #dc3545)' : 'var(--success, #28a745)';
-            dot.innerHTML = `<i class="fas ${iconClass}" style="font-size: 1rem;"></i>`;
+            dot.innerHTML = `<i class="fas ${iconClass}" style="font-size: 0.75rem;"></i>`;
 
             mapArea.appendChild(dot);
         });
@@ -493,32 +508,42 @@ document.addEventListener('DOMContentLoaded', () => {
         const mapContainer = document.querySelector('#view-mappa .map-wrapper');
         if (!mapContainer || !headerMappa) return;
 
-        // RIMOSSA l'iniezione della legenda duplicata. Ne resterà solo una (nella PHP).
+        // CONTAINER SUPERIORE: Legenda a sinistra, Filtri a destra, Sfondo Glassato
+        const topBarContainer = document.createElement('div');
+        topBarContainer.style.display = 'flex'; topBarContainer.style.justifyContent = 'space-between'; topBarContainer.style.alignItems = 'center';
+        topBarContainer.style.width = '100%'; topBarContainer.style.flexWrap = 'wrap'; topBarContainer.style.gap = '15px'; 
+        topBarContainer.style.marginBottom = '15px'; topBarContainer.style.background = 'var(--glass-bg)';
+        topBarContainer.style.padding = '10px 15px'; topBarContainer.style.borderRadius = '10px'; topBarContainer.style.border = '1px solid var(--glass-border)';
+
+        const topLegend = document.createElement('div');
+        topLegend.style.display = 'flex'; topLegend.style.gap = '15px'; topLegend.style.fontSize = '12px'; topLegend.style.fontWeight = 'bold'; topLegend.style.color = 'var(--text-muted)';
+        topLegend.innerHTML = `
+            <div style="display:flex; align-items:center; gap:5px;"><div style="width:14px; height:14px; background:var(--success); border-radius:3px;"></div> Disponibile</div>
+            <div style="display:flex; align-items:center; gap:5px;"><div style="width:14px; height:14px; background:var(--danger); border-radius:3px; opacity:0.7;"></div> Occupato</div>
+        `;
 
         const controlliMappa = document.createElement('div');
         controlliMappa.className = 'map-controls-container';
-        controlliMappa.style.display = 'flex'; controlliMappa.style.gap = '20px'; controlliMappa.style.marginTop = '15px'; 
-        controlliMappa.style.alignItems = 'flex-end'; controlliMappa.style.flexWrap = 'wrap'; controlliMappa.style.width = '100%';
-        controlliMappa.style.justifyContent = 'flex-end';
+        controlliMappa.style.display = 'flex'; controlliMappa.style.gap = '15px'; controlliMappa.style.alignItems = 'center'; controlliMappa.style.flexWrap = 'wrap';
 
         const oggi = new Date().toISOString().split('T')[0];
 
         controlliMappa.innerHTML = `
             <div class="map-control-group">
-                <label style="font-weight:bold; font-size:0.8rem; color:var(--text-dim);">Data Selezione</label>
-                <input type="date" id="map-date-filter" value="${appState.currentDate}" min="${oggi}"
-                       style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--glass-border); cursor: pointer; outline: none;">
+                <label style="font-weight:bold; font-size:0.75rem; color:var(--text-dim);">Data Selezione</label>
+                <input type="date" id="map-date-filter" value="${appState.currentDate}" min="${oggi}" 
+                       style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--glass-border); cursor: pointer; outline: none;">
             </div>
             <div class="map-control-group">
-                <label style="font-weight:bold; font-size:0.8rem; color:var(--text-dim);">Piano Sede</label>
-                <select id="map-layer-filter" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--glass-border); cursor: pointer; outline: none;">
+                <label style="font-weight:bold; font-size:0.75rem; color:var(--text-dim);">Piano Sede</label>
+                <select id="map-layer-filter" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--glass-border); cursor: pointer; outline: none;">
                     <option value="1">Uffici (Piano Terra)</option>
                     <option value="2">Garage (Sotterraneo)</option>
                 </select>
             </div>
             <div class="map-control-group">
-                <label style="font-weight:bold; font-size:0.8rem; color:var(--text-dim);">Filtra per Tipo</label>
-                <select id="map-type-filter" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--glass-border); cursor: pointer; outline: none;">
+                <label style="font-weight:bold; font-size:0.75rem; color:var(--text-dim);">Filtra per Tipo</label>
+                <select id="map-type-filter" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--glass-border); cursor: pointer; outline: none;">
                     <option value="">Mostra tutte le risorse</option>
                     <option value="A">Scrivania Std (Tipo A)</option>
                     <option value="A2">Scrivania + Monitor (Tipo A2)</option>
@@ -527,7 +552,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 </select>
             </div>
         `;
-        headerMappa.appendChild(controlliMappa);
+        
+        topBarContainer.appendChild(topLegend);
+        topBarContainer.appendChild(controlliMappa);
+        // Inseriamo la barra subito sotto l'header (titolo)
+        mapContainer.insertBefore(topBarContainer, mapContainer.querySelector('.map-wrapper') || mapContainer.firstChild);
 
         document.getElementById('map-date-filter').addEventListener('change', (e) => { appState.currentDate = e.target.value; updateMapState(); });
         document.getElementById('map-layer-filter').addEventListener('change', (e) => { 
@@ -549,15 +578,22 @@ document.addEventListener('DOMContentLoaded', () => {
             mapArea.id = 'map-area';
             mapArea.style.position = 'relative'; mapArea.style.width = '100%'; mapArea.style.height = '600px'; 
             mapArea.style.border = '2px solid var(--glass-border)'; mapArea.style.borderRadius = '10px'; mapArea.style.overflow = 'hidden';
-            mapContainer.appendChild(mapArea);
+            
+            // Il mapArea va dentro un map-wrapper per lo scorrimento mobile
+            let wrapper = document.createElement('div');
+            wrapper.className = 'map-container-scroll';
+            wrapper.style.width = '100%'; wrapper.style.overflowX = 'auto'; wrapper.style.paddingBottom = '10px';
+            wrapper.appendChild(mapArea);
+            mapContainer.appendChild(wrapper);
         }
 
         const layerUfficio = document.createElement('div'); layerUfficio.id = 'layer-1'; layerUfficio.style.width = '100%'; layerUfficio.style.height = '100%'; layerUfficio.style.position = 'absolute';
         layerUfficio.style.cssText += bgUfficio;
         
-        const meetingArea = document.createElement('div'); meetingArea.style.position = 'absolute'; meetingArea.style.top = '0'; meetingArea.style.left = '0'; meetingArea.style.width = '100%'; meetingArea.style.height = '30%'; meetingArea.style.background = 'rgba(255, 255, 255, 0.03)'; meetingArea.style.borderBottom = '2px dashed rgba(255,255,255,0.1)'; meetingArea.innerHTML = '<div class="map-text-overlay" style="top:10px; left:10px;">AREA MEETING</div>'; layerUfficio.appendChild(meetingArea);
-        const openSpaceArea = document.createElement('div'); openSpaceArea.style.position = 'absolute'; openSpaceArea.style.top = '30%'; openSpaceArea.style.left = '0'; openSpaceArea.style.width = '100%'; openSpaceArea.style.height = '48%'; openSpaceArea.innerHTML = '<div class="map-text-overlay" style="top:10px; left:10px;">OPEN SPACE (TIPO A)</div>'; layerUfficio.appendChild(openSpaceArea);
-        const execArea = document.createElement('div'); execArea.style.position = 'absolute'; execArea.style.bottom = '0'; execArea.style.left = '0'; execArea.style.width = '100%'; execArea.style.height = '22%'; execArea.style.background = 'rgba(255, 255, 255, 0.02)'; execArea.style.borderTop = '2px dashed rgba(255,255,255,0.1)'; execArea.innerHTML = '<div class="map-text-overlay" style="top:10px; left:10px;">AREA EXECUTIVE (TIPO A2)</div>'; layerUfficio.appendChild(execArea);
+        // Testi in background (Con pointer-events: none)
+        const meetingArea = document.createElement('div'); meetingArea.style.position = 'absolute'; meetingArea.style.top = '0'; meetingArea.style.left = '0'; meetingArea.style.width = '100%'; meetingArea.style.height = '30%'; meetingArea.style.background = 'rgba(255, 255, 255, 0.03)'; meetingArea.style.borderBottom = '2px dashed rgba(255,255,255,0.1)'; meetingArea.innerHTML = '<div class="map-text-overlay" style="top:5px; left:5px;">AREA MEETING</div>'; layerUfficio.appendChild(meetingArea);
+        const openSpaceArea = document.createElement('div'); openSpaceArea.style.position = 'absolute'; openSpaceArea.style.top = '30%'; openSpaceArea.style.left = '0'; openSpaceArea.style.width = '100%'; openSpaceArea.style.height = '48%'; openSpaceArea.innerHTML = '<div class="map-text-overlay" style="top:5px; left:5px;">OPEN SPACE (TIPO A)</div>'; layerUfficio.appendChild(openSpaceArea);
+        const execArea = document.createElement('div'); execArea.style.position = 'absolute'; execArea.style.bottom = '0'; execArea.style.left = '0'; execArea.style.width = '100%'; execArea.style.height = '22%'; execArea.style.background = 'rgba(255, 255, 255, 0.02)'; execArea.style.borderTop = '2px dashed rgba(255,255,255,0.1)'; execArea.innerHTML = '<div class="map-text-overlay" style="top:5px; left:5px;">AREA EXECUTIVE (TIPO A2)</div>'; layerUfficio.appendChild(execArea);
 
         const layerParcheggio = document.createElement('div'); layerParcheggio.id = 'layer-2'; layerParcheggio.style.width = '100%'; layerParcheggio.style.height = '100%'; layerParcheggio.style.position = 'absolute'; layerParcheggio.style.display = 'none';
         layerParcheggio.style.cssText += bgParcheggio;
@@ -575,12 +611,13 @@ document.addEventListener('DOMContentLoaded', () => {
             div.addEventListener('mouseleave', () => div.style.transform = 'translate(-50%, -50%) scale(1)');
 
             let iconClass = 'fa-chair'; 
-            if (asset.Tipologia === 'A' || asset.Tipologia === 'A2') { iconClass = asset.Tipologia === 'A' ? 'fa-chair' : 'fa-desktop'; div.style.width = '55px'; div.style.height = '55px'; div.style.borderRadius = '8px'; } 
-            else if (asset.Tipologia === 'B') { iconClass = 'fa-users'; div.style.width = '70px'; div.style.height = '70px'; div.style.borderRadius = '50%'; } 
-            else if (asset.Tipologia === 'C') { iconClass = 'fa-car'; div.style.width = '65px'; div.style.height = '40px'; div.style.borderRadius = '4px'; div.style.border = '2px dashed rgba(255,255,255,0.8)'; }
+            // Dimensioni icone Mappa proporzionate per non toccarsi
+            if (asset.Tipologia === 'A' || asset.Tipologia === 'A2') { iconClass = asset.Tipologia === 'A' ? 'fa-chair' : 'fa-desktop'; div.style.width = '40px'; div.style.height = '40px'; div.style.borderRadius = '8px'; } 
+            else if (asset.Tipologia === 'B') { iconClass = 'fa-users'; div.style.width = '60px'; div.style.height = '60px'; div.style.borderRadius = '50%'; } 
+            else if (asset.Tipologia === 'C') { iconClass = 'fa-car'; div.style.width = '60px'; div.style.height = '35px'; div.style.borderRadius = '4px'; div.style.border = '2px dashed rgba(255,255,255,0.8)'; }
 
             const numAsset = asset.Codice_Univoco.split('-')[1];
-            div.innerHTML = `<i class="fas ${iconClass}" style="font-size: 1.4rem; margin-bottom: 4px;"></i><span style="font-size: 0.7rem; font-weight: bold; background: rgba(0,0,0,0.5); padding: 2px 5px; border-radius: 4px;">${numAsset}</span>`;
+            div.innerHTML = `<i class="fas ${iconClass}" style="font-size: 1.1rem; margin-bottom: 2px;"></i><span style="font-size: 0.6rem; font-weight: bold; background: rgba(0,0,0,0.5); padding: 1px 4px; border-radius: 3px;">${numAsset}</span>`;
             
             div.addEventListener('click', () => {
                 if (div.classList.contains('d-busy')) alert("Questo asset è già occupato per la data selezionata.");

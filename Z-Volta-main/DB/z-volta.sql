@@ -1,14 +1,13 @@
 -- phpMyAdmin SQL Dump
--- version 4.7.0
+-- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Creato il: Feb 06, 2026 alle 10:56
--- Versione del server: 5.7.17
--- Versione PHP: 5.6.30
+-- Creato il: Feb 27, 2026 alle 09:20
+-- Versione del server: 10.4.32-MariaDB
+-- Versione PHP: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-SET AUTOCOMMIT = 0;
 START TRANSACTION;
 SET time_zone = "+00:00";
 
@@ -19,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `z_volta`
+-- Database: `z-volta`
 --
 
 -- --------------------------------------------------------
@@ -37,7 +36,7 @@ CREATE TABLE `asset` (
   `Coordinate_X` int(11) DEFAULT NULL,
   `Coordinate_Y` int(11) DEFAULT NULL,
   `Stato_Fisico` enum('Attivo','Disabilitato') DEFAULT 'Attivo'
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
 -- Dump dei dati per la tabella `asset`
@@ -83,7 +82,9 @@ INSERT INTO `asset` (`ID_Asset`, `Codice_Univoco`, `Tipologia`, `Descrizione`, `
 (37, 'C-07', 'C', 'Posto Auto', 2, 70, 10, 'Attivo'),
 (38, 'C-08', 'C', 'Posto Auto', 2, 80, 10, 'Attivo'),
 (39, 'C-09', 'C', 'Posto Auto', 2, 90, 10, 'Attivo'),
-(40, 'C-10', 'C', 'Posto Auto', 2, 10, 30, 'Attivo');
+(40, 'C-10', 'C', 'Posto Auto', 2, 10, 30, 'Attivo'),
+(41, 'A2-06', 'A2', 'Scrivania+Monitor', 1, 35, 40, 'Attivo'),
+(42, 'A-21', 'A', 'Scrivania Std', 1, 0, 0, 'Attivo');
 
 -- --------------------------------------------------------
 
@@ -94,7 +95,7 @@ INSERT INTO `asset` (`ID_Asset`, `Codice_Univoco`, `Tipologia`, `Descrizione`, `
 CREATE TABLE `configurazione` (
   `chiave` varchar(50) NOT NULL,
   `valore` varchar(255) DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
 -- Dump dei dati per la tabella `configurazione`
@@ -102,7 +103,7 @@ CREATE TABLE `configurazione` (
 
 INSERT INTO `configurazione` (`chiave`, `valore`) VALUES
 ('manutenzione_mode', '0'),
-('max_giorni_anticipo', '30'),
+('max_giorni_anticipo', '0'),
 ('ora_apertura', '08:00'),
 ('ora_chiusura', '19:00');
 
@@ -116,7 +117,7 @@ CREATE TABLE `mappa` (
   `ID_Mappa` int(11) NOT NULL,
   `Nome_Mappa` varchar(50) DEFAULT NULL,
   `Tipologia` enum('Sede','Parcheggio') DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
 -- Dump dei dati per la tabella `mappa`
@@ -138,9 +139,33 @@ CREATE TABLE `prenotazione` (
   `ID_Asset` int(11) DEFAULT NULL,
   `Data_Prenotazione` date NOT NULL,
   `Stato` enum('Attiva','Cancellata','Revocata') DEFAULT 'Attiva',
-  `Contatore_Modifiche` int(11) DEFAULT '0',
-  `Timestamp_Creazione` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+  `Contatore_Modifiche` int(11) DEFAULT 0,
+  `Timestamp_Creazione` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dump dei dati per la tabella `prenotazione`
+--
+
+INSERT INTO `prenotazione` (`ID_Prenotazione`, `ID_Utente`, `ID_Asset`, `Data_Prenotazione`, `Stato`, `Contatore_Modifiche`, `Timestamp_Creazione`) VALUES
+(1, 1, 31, '2026-02-21', 'Cancellata', 0, '2026-02-21 09:42:00'),
+(2, 1, 1, '0000-00-00', 'Cancellata', 0, '2026-02-21 09:48:50'),
+(3, 1, 31, '0000-00-00', 'Cancellata', 0, '2026-02-21 09:49:20'),
+(4, 1, 1, '0000-00-00', 'Cancellata', 0, '2026-02-21 09:49:29'),
+(5, 1, 1, '2026-02-21', 'Cancellata', 0, '2026-02-21 09:59:36'),
+(6, 1, 31, '2026-02-21', 'Cancellata', 0, '2026-02-21 10:14:24'),
+(7, 1, 19, '2026-02-21', 'Cancellata', 0, '2026-02-21 10:19:23'),
+(8, 1, 4, '2026-02-23', 'Cancellata', 0, '2026-02-23 08:01:05'),
+(9, 1, 5, '2026-02-23', 'Cancellata', 0, '2026-02-23 08:26:53'),
+(10, 1, 35, '2026-02-23', 'Cancellata', 0, '2026-02-23 08:37:05'),
+(11, 1, 40, '2026-02-23', 'Cancellata', 0, '2026-02-23 08:47:45'),
+(12, 1, 31, '2026-02-23', 'Cancellata', 0, '2026-02-23 08:55:25'),
+(13, 1, 10, '2026-02-23', 'Cancellata', 0, '2026-02-23 09:31:11'),
+(14, 1, 27, '2026-02-23', 'Cancellata', 0, '2026-02-23 11:26:09'),
+(15, 1, 32, '2026-02-23', 'Cancellata', 0, '2026-02-23 11:26:26'),
+(16, 1, 4, '2026-02-23', 'Cancellata', 0, '2026-02-23 13:41:01'),
+(17, 1, 26, '2026-02-24', 'Cancellata', 0, '2026-02-24 07:19:03'),
+(18, 1, 3, '2026-02-27', 'Cancellata', 0, '2026-02-27 08:12:19');
 
 -- --------------------------------------------------------
 
@@ -156,17 +181,17 @@ CREATE TABLE `utente` (
   `Ruolo` enum('dipendente','coordinatore','gestore') NOT NULL,
   `ID_Team` int(11) DEFAULT NULL,
   `Password` varchar(255) DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
 -- Dump dei dati per la tabella `utente`
 --
 
 INSERT INTO `utente` (`ID_Utente`, `Username`, `Nome`, `Cognome`, `Ruolo`, `ID_Team`, `Password`) VALUES
-(1, 'l.neri', 'Luigi', 'Neri', 'gestore', NULL, 'passwordsicura1'),
-(2, 'g.verdi', 'Giulia', 'Verdi', 'coordinatore', 1, 'passwordsicura2'),
-(3, 'l.bianchi', 'Luca', 'Bianchi', 'dipendente', 1, 'passwordsicura3'),
-(4, 'm.rossi', 'Mario', 'Rossi', 'dipendente', 1, 'passwordsicura4');
+(1, 'admin', 'Marco', 'Negri', 'gestore', 1, 'admin'),
+(2, 'g.verdi', 'Giulia', 'Verdi', 'coordinatore', 1, 'Zucchetti_01!'),
+(3, 'l.bianchi', 'Luca', 'Bianchi', 'dipendente', 1, 'Zucchetti_01!'),
+(4, 'm.rossi', 'Mario', 'Rossi', 'dipendente', 1, 'Zucchetti_01!');
 
 --
 -- Indici per le tabelle scaricate
@@ -214,17 +239,20 @@ ALTER TABLE `utente`
 -- AUTO_INCREMENT per la tabella `asset`
 --
 ALTER TABLE `asset`
-  MODIFY `ID_Asset` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+  MODIFY `ID_Asset` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
+
 --
 -- AUTO_INCREMENT per la tabella `prenotazione`
 --
 ALTER TABLE `prenotazione`
-  MODIFY `ID_Prenotazione` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `ID_Prenotazione` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+
 --
 -- AUTO_INCREMENT per la tabella `utente`
 --
 ALTER TABLE `utente`
-  MODIFY `ID_Utente` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;COMMIT;
+  MODIFY `ID_Utente` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;

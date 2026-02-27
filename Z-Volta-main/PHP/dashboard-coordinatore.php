@@ -40,7 +40,7 @@ require_once 'config.php';
                     <li class="nav-item"><a href="#" class="nav-link" data-target="view-mappa"><i class="fas fa-map"></i> Mappa Sede</a></li>
                     <li class="nav-item"><a href="#" class="nav-link" data-target="view-prenotazioni"><i class="fas fa-users-cog"></i> Prenotazioni Team</a></li>
                     <li class="nav-item"><a href="#" class="nav-link" data-target="view-impostazioni"><i class="fas fa-cog"></i> Impostazioni</a></li>
-                    <li class="nav-item theme-toggle-item"><a href="#" id="theme-toggle"><i class="fas fa-sun"></i><span>Light Mode</span></a></li>
+                    
                 </ul>
             </div>
 
