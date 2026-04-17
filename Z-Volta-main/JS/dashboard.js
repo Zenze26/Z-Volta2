@@ -65,13 +65,15 @@ document.addEventListener('DOMContentLoaded', () => {
     navLinks.forEach(link => { link.addEventListener('click', (e) => { e.preventDefault(); switchView(link.getAttribute('data-target')); }); });
     window.vaiAPrenotazioni = function() { switchView('view-prenotazioni'); };
 
+    // --- FILTRAGGIO OTTIMIZZATO ---
     function syncGlobalFiltersUI() {
         const mapTypeSelect = document.getElementById('map-type-filter'); if (mapTypeSelect) mapTypeSelect.value = appState.activeFilter;
         const mapLayerSelect = document.getElementById('map-layer-filter'); if (mapLayerSelect) mapLayerSelect.value = appState.currentLayer.toString();
         const assetCards = document.querySelectorAll('.asset-card');
         assetCards.forEach(card => {
             card.style.border = 'none'; card.style.transform = 'scale(1)';
-            if (appState.activeFilter && card.innerText.includes('Tipo ' + appState.activeFilter)) {
+            // Confronto rigoroso basato sull'attributo data-asset-type (elimina l'errore A vs A2)
+            if (appState.activeFilter && card.getAttribute('data-asset-type') === appState.activeFilter) {
                 card.style.border = '2px solid var(--accent)'; card.style.transform = 'scale(1.05)';
             }
         });
@@ -81,15 +83,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const assetCards = document.querySelectorAll('.asset-card');
         assetCards.forEach(card => {
             card.removeAttribute('onclick'); card.style.cursor = 'pointer'; card.style.transition = 'all 0.2s ease';
-            card.addEventListener('click', () => {
-                const text = card.innerText; let type = '';
-                if (text.includes('Tipo A2')) type = 'A2'; else if (text.includes('Tipo A')) type = 'A';
-                else if (text.includes('Tipo B')) type = 'B'; else if (text.includes('Tipo C')) type = 'C';
+            
+            // Assegnazione sicura del tipo al caricamento
+            const content = card.innerHTML;
+            let type = '';
+            if (content.includes('Tipo A2')) type = 'A2';
+            else if (content.includes('Tipo A')) type = 'A';
+            else if (content.includes('Tipo B')) type = 'B';
+            else if (content.includes('Tipo C')) type = 'C';
+            
+            card.setAttribute('data-asset-type', type);
 
-                if (appState.activeFilter === type) { appState.activeFilter = ''; } 
+            card.addEventListener('click', () => {
+                const clickedType = card.getAttribute('data-asset-type');
+                if (appState.activeFilter === clickedType) { appState.activeFilter = ''; } 
                 else {
-                    appState.activeFilter = type;
-                    if (type === 'C') appState.currentLayer = 2; else if (['A', 'A2', 'B'].includes(type)) appState.currentLayer = 1;
+                    appState.activeFilter = clickedType;
+                    if (clickedType === 'C') appState.currentLayer = 2; else if (['A', 'A2', 'B'].includes(clickedType)) appState.currentLayer = 1;
                 }
                 syncGlobalFiltersUI(); updateMapState();
             });
