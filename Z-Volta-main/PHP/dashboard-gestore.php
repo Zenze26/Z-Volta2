@@ -22,6 +22,10 @@ require_once 'config.php';
 
 <body data-theme="dark">
 
+    <div id="global-loader">
+        <div class="spinner"></div>
+    </div>
+
     <div class="dashboard-grid">
 
         <aside class="glass-box sidebar">
@@ -264,6 +268,15 @@ require_once 'config.php';
         </main>
     </div>
     <script src="../JS/dashboard.js"></script>
+
+    <script>
+        window.addEventListener('load', function() {
+            const loader = document.getElementById('global-loader');
+            if (loader) {
+                loader.classList.add('hidden');
+            }
+        });
+    </script>
 </body>
 
 </html>

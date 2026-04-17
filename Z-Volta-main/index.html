@@ -11,6 +11,10 @@
 </head>
 <body>
 
+    <div id="global-loader">
+        <div class="spinner"></div>
+    </div>
+
     <div class="login-wrapper">
         <img src="./assets/logozvolta.png" alt="Z-Volta Logo" class="logo-img">
         
@@ -42,6 +46,13 @@
 
     <script src="./JS/index.js" defer></script>
 
+    <script>
+        window.addEventListener('load', function() {
+            const loader = document.getElementById('global-loader');
+            if (loader) {
+                loader.classList.add('hidden');
+            }
+        });
+    </script>
 </body>
 </html>
-

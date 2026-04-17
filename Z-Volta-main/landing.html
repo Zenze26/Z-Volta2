@@ -11,9 +11,12 @@
 </head>
 <body>
 
+    <div id="global-loader">
+        <div class="spinner"></div>
+    </div>
+
     <div class="landing-container glass-panel">
         
-        <!-- PARTE SINISTRA: Grafica Astratta / Organica -->
         <div class="landing-visual">
             <div class="blob blob-1"></div>
             <div class="blob blob-2"></div>
@@ -21,10 +24,8 @@
             <div class="glass-overlay"></div>
         </div>
 
-        <!-- PARTE DESTRA: Navigazione e Contenuto -->
         <div class="landing-content">
             
-            <!-- Navigazione (Stile immagine) -->
             <header class="landing-header">
                 <nav class="top-nav">
                     <a href="#" class="active">Home</a>
@@ -35,7 +36,6 @@
                 </div>
             </header>
 
-            <!-- Testo Principale -->
             <main class="hero-section">
                 <h1 class="hero-title">Gestione Spazi<br><span class="text-accent">Z-VOLTA</span></h1>
                 <p class="hero-text">
@@ -50,5 +50,13 @@
         </div>
     </div>
 
+    <script>
+        window.addEventListener('load', function() {
+            const loader = document.getElementById('global-loader');
+            if (loader) {
+                loader.classList.add('hidden');
+            }
+        });
+    </script>
 </body>
 </html>

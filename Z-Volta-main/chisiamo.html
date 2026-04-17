@@ -11,6 +11,10 @@
 </head>
 <body>
 
+    <div id="global-loader">
+        <div class="spinner"></div>
+    </div>
+
     <div class="landing-container glass-panel">
         
         <div class="landing-visual">
@@ -46,5 +50,13 @@
         </div>
     </div>
 
+    <script>
+        window.addEventListener('load', function() {
+            const loader = document.getElementById('global-loader');
+            if (loader) {
+                loader.classList.add('hidden');
+            }
+        });
+    </script>
 </body>
 </html>
