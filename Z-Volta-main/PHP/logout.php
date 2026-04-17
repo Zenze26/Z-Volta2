@@ -7,3 +7,4 @@ session_destroy();
 // Reindirizza l'utente alla pagina di login (fuori dalla cartella PHP)
 header("Location: ../index.html");
 exit;
+?>

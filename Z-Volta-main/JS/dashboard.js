@@ -484,11 +484,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // Dimensioni icone Preview armoniose
             if (asset.Tipologia === 'A' || asset.Tipologia === 'A2') {
                 iconClass = asset.Tipologia === 'A' ? 'fa-chair' : 'fa-desktop';
-                dot.style.width = '20px'; dot.style.height = '20px'; dot.style.borderRadius = '4px';
+                dot.style.width = '25px'; dot.style.height = '25px'; dot.style.borderRadius = '4px';
             } else if (asset.Tipologia === 'B') {
-                iconClass = 'fa-users'; dot.style.width = '28px'; dot.style.height = '28px'; dot.style.borderRadius = '50%';
+                iconClass = 'fa-users'; dot.style.width = '40px'; dot.style.height = '40px'; dot.style.borderRadius = '50%';
             } else if (asset.Tipologia === 'C') {
-                iconClass = 'fa-car'; dot.style.width = '30px'; dot.style.height = '18px'; 
+                iconClass = 'fa-car'; dot.style.width = '50px'; dot.style.height = '38px'; 
                 dot.style.borderRadius = '3px'; dot.style.border = '1px dashed rgba(255,255,255,0.8)';
             }
 
